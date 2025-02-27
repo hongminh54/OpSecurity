@@ -1,0 +1,11 @@
+# Sử dụng LuckPerms để quản lý quyền và rank
+use-luckperms: true
+
+# Sử dụng staff.yml
+use-staff-yml: true
+
+# Thời gian thông báo định kỳ khi chưa đăng nhập (giây, 0 để tắt)
+login-reminder-interval: 10
+
+# Bật hiệu ứng khi đăng nhập thành công
+enable-login-effects: true

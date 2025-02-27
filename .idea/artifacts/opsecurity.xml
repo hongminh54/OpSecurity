@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="opsecurity">
+    <output-path>$PROJECT_DIR$/out/artifacts/opsecurity</output-path>
+    <root id="archive" name="opsecurity.jar">
+      <element id="module-output" name="opsecurity" />
+    </root>
+  </artifact>
+</component>

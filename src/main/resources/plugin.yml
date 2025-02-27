@@ -1,0 +1,14 @@
+name: OpSecurity
+version: '1.0'
+main: mc.sourcecode54.opSecurity.OpSecurity
+authors: [ SourceCode54 ]
+api-version: 1.13  # Dùng 1.13 để tương thích tốt hơn với GUI, fallback thủ công cho 1.8-1.12
+softdepend: [LuckPerms]
+commands:
+  opsec:
+    description: Lệnh bảo mật và quản lý staff
+    usage: /<command> [register|login|forgot|contactadmin] [args]
+permissions:
+  security.staff:
+    description: Quyền dành cho staff
+    default: op
