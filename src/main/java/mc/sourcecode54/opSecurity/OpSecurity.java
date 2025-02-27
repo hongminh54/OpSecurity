@@ -20,7 +20,7 @@ public class OpSecurity extends JavaPlugin { // Class chính của plugin, quả
     private ConfigManager configManager; // Quản lý các file config và dữ liệu
     private PermissionHandler permissionHandler; // Xử lý quyền (LuckPerms hoặc staff.yml)
     private LoginManager loginManager; // Quản lý đăng nhập, GUI, và hiệu ứng
-    private static final String GITHUB_API_URL = "https://api.github.com/repos/<your-username>/<your-repo>/releases/latest"; // URL API GitHub, thay bằng repo của bạn
+    private static final String GITHUB_API_URL = "https://api.github.com/repos/hongminh54/OpSecurity/releases/latest"; // URL API GitHub, thay bằng repo của bạn
     private static final String CURRENT_VERSION = "1.0"; // Phiên bản hiện tại, cập nhật khi phát hành
 
     @Override
