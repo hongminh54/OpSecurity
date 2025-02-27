@@ -2,13 +2,33 @@ name: OpSecurity
 version: '1.0'
 main: mc.sourcecode54.opSecurity.OpSecurity
 authors: [ SourceCode54 ]
-api-version: 1.13  # Dùng 1.13 để tương thích tốt hơn với GUI, fallback thủ công cho 1.8-1.12
+api-version: 1.13
 softdepend: [LuckPerms]
 commands:
   opsec:
     description: Lệnh bảo mật và quản lý staff
-    usage: /<command> [register|login|forgot|contactadmin] [args]
+    usage: /<command> [register|login|forgot|check|contactadmin|reset] [args]
+  addstaff:
+    description: Thêm staff vào rank trong staff.yml
+    usage: /<command> <rank> <player>
+    permission: opsecurity.addstaff
+  removestaff:
+    description: Xóa staff khỏi rank trong staff.yml
+    usage: /<command> <rank> <player>
+    permission: opsecurity.removestaff
 permissions:
   security.staff:
     description: Quyền dành cho staff
+    default: op
+  opsecurity.addstaff:
+    description: Quyền thêm staff
+    default: op
+  opsecurity.removestaff:
+    description: Quyền xóa staff
+    default: op
+  opsecurity.check:
+    description: Quyền kiểm tra rank
+    default: op
+  opsecurity.reset:
+    description: Quyền reset mật khẩu thủ công
     default: op

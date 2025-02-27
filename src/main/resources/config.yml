@@ -1,11 +1,7 @@
-# Sử dụng LuckPerms để quản lý quyền và rank
+# OpSecurity v1.1 Config File
 use-luckperms: true
-
-# Sử dụng staff.yml
 use-staff-yml: true
-
-# Thời gian thông báo định kỳ khi chưa đăng nhập (giây, 0 để tắt)
 login-reminder-interval: 10
-
-# Bật hiệu ứng khi đăng nhập thành công
 enable-login-effects: true
+enable-manual-reset: true # Bật/tắt tính năng reset thủ công
+max-password-length: 16 # Độ dài tối đa của mật khẩu
