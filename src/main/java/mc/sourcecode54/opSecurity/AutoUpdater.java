@@ -17,21 +17,21 @@ import java.net.URI;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.command.CommandSender;
 
 public class AutoUpdater {
     private final JavaPlugin plugin;
     private static final String GITHUB_API_URL = "https://api.github.com/repos/hongminh54/OpSecurity/releases/latest";
-    private static final String CURRENT_VERSION = "1.1"; // Phiên bản hiện tại, cần đồng bộ với OpSecurity.java
-    private boolean hasChecked = false; // Trạng thái đã kiểm tra cập nhật
+    private static final String CURRENT_VERSION = "1.0";
+    private boolean hasChecked = false;
 
     public AutoUpdater(JavaPlugin plugin) {
         this.plugin = plugin;
     }
 
     public void checkForUpdates() {
-        // Chỉ kiểm tra nếu chưa kiểm tra trước đó và phiên bản không phải mới nhất
         if (hasChecked) {
-            plugin.getLogger().info("Đã kiểm tra cập nhật trước đó. Bỏ qua.....");
+            plugin.getLogger().info("Đã kiểm tra cập nhật trước đó. Bỏ qua kiểm tra thêm.");
             return;
         }
 
@@ -39,11 +39,10 @@ public class AutoUpdater {
             @Override
             public void run() {
                 try {
-                    // Kiểm tra phiên bản hiện tại trước
                     if (isCurrentVersionLatest()) {
                         plugin.getLogger().info("Plugin đang chạy phiên bản mới nhất: " + CURRENT_VERSION);
-                        hasChecked = true; // Đánh dấu đã kiểm tra
-                        return; // Không kiểm tra tiếp nếu đang ở phiên bản mới nhất
+                        hasChecked = true;
+                        return;
                     }
 
                     HttpClient client = HttpClient.newHttpClient();
@@ -69,7 +68,7 @@ public class AutoUpdater {
                                 String downloadUrl = (String) asset.get("browser_download_url");
                                 downloadAndUpdateDirectly(downloadUrl);
                             } else {
-                                plugin.getLogger().warning("Không tìm thấy assets trong github.");
+                                plugin.getLogger().warning("Không tìm thấy assets trong release.");
                             }
                         } else {
                             plugin.getLogger().info("Plugin đang chạy phiên bản mới nhất: " + CURRENT_VERSION);
@@ -77,10 +76,10 @@ public class AutoUpdater {
                     } else {
                         plugin.getLogger().warning("Không thể xác định phiên bản mới từ GitHub.");
                     }
-                    hasChecked = true; // Đánh dấu đã kiểm tra sau khi hoàn thành
+                    hasChecked = true;
                 } catch (Exception e) {
                     plugin.getLogger().log(Level.WARNING, "Không thể kiểm tra cập nhật từ GitHub: " + e.getMessage());
-                    hasChecked = true; // Đánh dấu đã kiểm tra ngay cả khi có lỗi, tránh kiểm tra lặp lại
+                    hasChecked = true;
                 }
             }
         }.runTaskAsynchronously(plugin);
@@ -118,18 +117,16 @@ public class AutoUpdater {
                     .uri(URI.create(url))
                     .build();
 
-            File pluginFolder = plugin.getDataFolder().getParentFile(); // Thư mục plugins/
+            File pluginFolder = plugin.getDataFolder().getParentFile();
             File currentJar = new File(pluginFolder, "OpSecurity.jar");
             File backupJar = new File(pluginFolder, "OpSecurity_backup.jar");
 
-            // Sao lưu file hiện tại trước khi cập nhật
             if (currentJar.exists()) {
-                if (backupJar.exists()) backupJar.delete(); // Xóa backup cũ nếu tồn tại
-                currentJar.renameTo(backupJar); // Sao lưu file cũ
+                if (backupJar.exists()) backupJar.delete();
+                currentJar.renameTo(backupJar);
                 plugin.getLogger().info("Đã sao lưu phiên bản cũ thành OpSecurity_backup.jar.");
             }
 
-            // Tải file mới và ghi đè
             HttpResponse<InputStream> response = client.send(request, HttpResponse.BodyHandlers.ofInputStream());
             try (ReadableByteChannel rbc = Channels.newChannel(response.body());
                  FileOutputStream fos = new FileOutputStream(currentJar)) {
@@ -139,7 +136,6 @@ public class AutoUpdater {
             plugin.getLogger().info("Đã cập nhật OpSecurity trực tiếp trong thư mục plugins/. Vui lòng khởi động lại server để áp dụng!");
         } catch (Exception e) {
             plugin.getLogger().log(Level.WARNING, "Không thể cập nhật trực tiếp: " + e.getMessage());
-            // Nếu cập nhật thất bại, khôi phục file backup
             File pluginFolder = plugin.getDataFolder().getParentFile();
             File currentJar = new File(pluginFolder, "OpSecurity.jar");
             File backupJar = new File(pluginFolder, "OpSecurity_backup.jar");
@@ -148,5 +144,11 @@ public class AutoUpdater {
                 plugin.getLogger().info("Đã khôi phục phiên bản cũ từ backup.");
             }
         }
+    }
+
+    public void manualCheckForUpdates(CommandSender sender) { // Đảm bảo phương thức này là public
+        hasChecked = false; // Reset trạng thái để kiểm tra lại
+        checkForUpdates();
+        sender.sendMessage("§eĐang kiểm tra và cập nhật phiên bản mới...");
     }
 }

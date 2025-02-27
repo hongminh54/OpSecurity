@@ -7,7 +7,7 @@ softdepend: [LuckPerms]
 commands:
   opsec:
     description: Lệnh bảo mật và quản lý staff
-    usage: /<command> [register|login|forgot|check|contactadmin|reset] [args]
+    usage: /<command> [register|login|forgot|check|contactadmin|reset|update|reload] [args]
   addstaff:
     description: Thêm staff vào rank trong staff.yml
     usage: /<command> <rank> <player>
@@ -31,4 +31,10 @@ permissions:
     default: op
   opsecurity.reset:
     description: Quyền reset mật khẩu thủ công
+    default: op
+  opsecurity.update:
+    description: Quyền kiểm tra và cập nhật plugin
+    default: op
+  opsecurity.reload:
+    description: Quyền tải lại dữ liệu plugin
     default: op

@@ -31,18 +31,18 @@ public class ConfigManager {
         loadFiles();
     }
 
-    private void loadConfig() {
+    public void loadConfig() {
         plugin.saveDefaultConfig();
         FileConfiguration config = plugin.getConfig();
         useLuckPerms = config.getBoolean("use-luckperms", true);
         useStaffYml = config.getBoolean("use-staff-yml", true);
         reminderInterval = config.getInt("login-reminder-interval", 10);
         enableLoginEffects = config.getBoolean("enable-login-effects", true);
-        enableManualReset = config.getBoolean("enable-manual-reset", true); // Tính năng reset thủ công
-        maxPasswordLength = config.getInt("max-password-length", 16); // Độ dài tối đa mật khẩu
+        enableManualReset = config.getBoolean("enable-manual-reset", true);
+        maxPasswordLength = config.getInt("max-password-length", 16);
     }
 
-    private void loadFiles() {
+    public void loadFiles() {
         dataFile = new File(plugin.getDataFolder(), "data.yml");
         if (!dataFile.exists()) createFile(dataFile, "data.yml");
         dataConfig = YamlConfiguration.loadConfiguration(dataFile);
@@ -53,10 +53,10 @@ public class ConfigManager {
 
         logFile = new File(plugin.getDataFolder(), "security.log");
         if (!logFile.exists()) createFile(logFile, "security.log");
-        optimizeLogFile(); // Tối ưu kích thước log
+        optimizeLogFile();
         messagesFile = new File(plugin.getDataFolder(), "messages.yml");
         if (!messagesFile.exists()) createFile(messagesFile, "messages.yml");
-        optimizeMessagesFile(); // Tối ưu số tin nhắn
+        optimizeMessagesFile();
         messagesConfig = YamlConfiguration.loadConfiguration(messagesFile);
     }
 

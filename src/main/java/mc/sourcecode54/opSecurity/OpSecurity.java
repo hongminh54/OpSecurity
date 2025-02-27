@@ -11,8 +11,8 @@ public class OpSecurity extends JavaPlugin {
     public void onEnable() {
         try {
             getLogger().info("==========================================");
-            getLogger().info("OpSecurity v1.1 đang khởi động..."); // Cập nhật CURRENT_VERSION nếu cần
-            getLogger().info("Tác giả: hongminh54");
+            getLogger().info("OpSecurity v1.0 đang khởi động...");
+            getLogger().info("Tác giả: Hong Minh");
             getLogger().info("Hỗ trợ Minecraft 1.8 - 1.21.4");
             getLogger().info("==========================================");
 
@@ -22,14 +22,15 @@ public class OpSecurity extends JavaPlugin {
 
             getServer().getPluginManager().registerEvents(new EventListener(this, configManager, permissionHandler, loginManager), this);
             getServer().getPluginManager().registerEvents(loginManager, this);
-            getCommand("opsec").setExecutor(loginManager);
-            getCommand("opsec").setTabCompleter(loginManager);
+            OpSecCommand opSecCommand = new OpSecCommand(this, configManager, permissionHandler, new AutoUpdater(this), loginManager);
+            getCommand("opsec").setExecutor(opSecCommand);
+            getCommand("opsec").setTabCompleter(opSecCommand);
 
             new AutoUpdater(this).checkForUpdates();
 
-            getLogger().info("OpSecurity đã được bật!");
+            getLogger().info("OpSecurity đã được kích hoạt thành công!");
         } catch (Exception e) {
-            getLogger().severe("Lỗi khi bật OpSecurity: " + e.getMessage());
+            getLogger().severe("Lỗi khi kích hoạt OpSecurity: " + e.getMessage());
             e.printStackTrace();
             getServer().getPluginManager().disablePlugin(this);
         }
@@ -43,5 +44,9 @@ public class OpSecurity extends JavaPlugin {
         } else {
             getLogger().warning("ConfigManager là null, không thể lưu dữ liệu.");
         }
+    }
+
+    public ConfigManager getConfigManager() {
+        return configManager;
     }
 }
