@@ -164,7 +164,4 @@ public class LoginManager implements Listener {
         try { return Material.valueOf(modern); } catch (IllegalArgumentException e) { return Material.valueOf(legacy); }
     }
 
-    private Sound getCompatibleSound(String modern, String legacy) {
-        try { return Sound.valueOf(modern); } catch (IllegalArgumentException e) { return Sound.valueOf(legacy); }
-    }
 }

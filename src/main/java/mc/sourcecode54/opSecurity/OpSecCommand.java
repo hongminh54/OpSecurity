@@ -47,8 +47,8 @@ public class OpSecCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        String targetName = null;
-        Player target = null;
+        String targetName;
+        Player target;
 
         switch (subCommand) {
             case "register":
@@ -317,7 +317,6 @@ public class OpSecCommand implements CommandExecutor, TabCompleter {
             } else if (subCommand.equals("check") || subCommand.equals("reset")) {
                 if (player.hasPermission("opsecurity." + subCommand)) suggestions.add("<player>");
             } else if (subCommand.equals("update") || subCommand.equals("reload")) {
-                // Không cần gợi ý gì thêm cho update và reload
             } else if (subCommand.equals("register") && permissionHandler.isStaff(player) && !loginManager.isRegistered(player)) {
                 suggestions.add("<mật khẩu>");
             } else if (subCommand.equals("login") && permissionHandler.isStaff(player) && loginManager.isRegistered(player)) {
