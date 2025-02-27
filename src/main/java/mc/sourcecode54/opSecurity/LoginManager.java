@@ -64,26 +64,21 @@ public class LoginManager implements Listener {
     public void playLoginEffects(Player player) {
         if (!configManager.enableLoginEffects) return;
 
+        Location loc = player.getLocation();
+        player.playSound(loc, getCompatibleSound("ENTITY_PLAYER_LEVELUP", "LEVEL_UP"), 1.0f, 1.0f);
+
+        Firework fw = (Firework) player.getWorld().spawnEntity(loc, EntityType.FIREWORK);
+        FireworkMeta meta = fw.getFireworkMeta();
+        meta.addEffect(FireworkEffect.builder().withColor(Color.YELLOW).withFade(Color.ORANGE).with(FireworkEffect.Type.STAR).trail(true).flicker(true).build());
+        meta.setPower(1);
+        fw.setFireworkMeta(meta);
+
         new BukkitRunnable() {
             @Override
             public void run() {
-                Location loc = player.getLocation();
-                player.playSound(loc, getCompatibleSound("ENTITY_PLAYER_LEVELUP", "LEVEL_UP"), 1.0f, 1.0f);
-
-                Firework fw = (Firework) player.getWorld().spawnEntity(loc, EntityType.FIREWORK);
-                FireworkMeta meta = fw.getFireworkMeta();
-                meta.addEffect(FireworkEffect.builder().withColor(Color.YELLOW).withFade(Color.ORANGE).with(FireworkEffect.Type.STAR).trail(true).flicker(true).build());
-                meta.setPower(1);
-                fw.setFireworkMeta(meta);
-
-                new BukkitRunnable() {
-                    @Override
-                    public void run() {
-                        fw.detonate();
-                    }
-                }.runTaskLater(plugin, 10L);
+                fw.detonate();
             }
-        }.runTask(plugin);
+        }.runTaskLater(plugin, 10L);
     }
 
     @EventHandler
@@ -107,7 +102,7 @@ public class LoginManager implements Listener {
         }
     }
 
-    public void sendForgotRequest(Player player, String rank) { // Thay private thành public
+    public void sendForgotRequest(Player player, String rank) {
         String message = player.getName() + " (Rank: " + rank + ") yêu cầu reset mật khẩu. Vui lòng xử lý thủ công qua /opsec reset.";
         boolean adminOnline = false;
 

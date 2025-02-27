@@ -47,7 +47,7 @@ public class OpSecCommand implements CommandExecutor, TabCompleter {
         }
 
         String subCommand = args[0].toLowerCase();
-        if (!player.hasPermission("opsecurity." + subCommand) && !isAuthenticated(player)) {
+        if (!player.hasPermission("opsecurity." + subCommand) && !loginManager.isAuthenticated(player)) { // Sử dụng loginManager
             player.sendMessage("§cBạn không có quyền dùng lệnh này hoặc chưa đăng nhập!");
             return true;
         }
@@ -59,6 +59,10 @@ public class OpSecCommand implements CommandExecutor, TabCompleter {
             case "register":
                 if (!permissionHandler.isStaff(player)) {
                     player.sendMessage("§cBạn không phải staff!");
+                    return true;
+                }
+                if (loginManager.isRegistered(player)) { // Sử dụng loginManager
+                    player.sendMessage("§cBạn đã đăng ký rồi! Vui lòng dùng /opsec login <mật khẩu> để đăng nhập.");
                     return true;
                 }
                 if (args.length != 2) {
@@ -81,7 +85,7 @@ public class OpSecCommand implements CommandExecutor, TabCompleter {
                 return true;
 
             case "login":
-                if (!permissionHandler.isStaff(player) || !loginManager.isRegistered(player)) {
+                if (!permissionHandler.isStaff(player) || !loginManager.isRegistered(player)) { // Sử dụng loginManager
                     player.sendMessage("§cBạn không cần đăng nhập!");
                     return true;
                 }
@@ -105,16 +109,16 @@ public class OpSecCommand implements CommandExecutor, TabCompleter {
                 return true;
 
             case "forgot":
-                if (!permissionHandler.isStaff(player) || !loginManager.isRegistered(player)) {
+                if (!permissionHandler.isStaff(player) || !loginManager.isRegistered(player)) { // Sử dụng loginManager
                     player.sendMessage("§cBạn không cần đăng nhập!");
                     return true;
                 }
                 rank = configManager.getDefaultOrValidRank(permissionHandler.getPlayerRank(player));
-                loginManager.sendForgotRequest(player, rank); // Sử dụng phương thức public
+                loginManager.sendForgotRequest(player, rank);
                 return true;
 
             case "contactadmin":
-                if (!permissionHandler.isStaff(player) || !loginManager.isRegistered(player)) {
+                if (!permissionHandler.isStaff(player) || !loginManager.isRegistered(player)) { // Sử dụng loginManager
                     player.sendMessage("§cBạn không cần đăng nhập!");
                     return true;
                 }
@@ -241,7 +245,7 @@ public class OpSecCommand implements CommandExecutor, TabCompleter {
                     player.sendMessage("§cNgười chơi '" + targetName + "' không online!");
                     return true;
                 }
-                if (!permissionHandler.isStaff(target) || !isRegistered(target)) {
+                if (!permissionHandler.isStaff(target) || !loginManager.isRegistered(target)) { // Sử dụng loginManager
                     player.sendMessage("§c" + targetName + " không phải staff hoặc chưa đăng ký!");
                     return true;
                 }
@@ -269,8 +273,8 @@ public class OpSecCommand implements CommandExecutor, TabCompleter {
                 }
                 try {
                     plugin.reloadConfig();
-                    configManager.loadConfig(); // Sử dụng phương thức public
-                    configManager.loadFiles(); // Sử dụng phương thức public
+                    configManager.loadConfig();
+                    configManager.loadFiles();
                     player.sendMessage("§aĐã tải lại dữ liệu từ các file .yml thành công!");
                     configManager.logSecurityEvent(player.getName() + " đã tải lại dữ liệu plugin.");
                 } catch (Exception e) {
@@ -303,9 +307,9 @@ public class OpSecCommand implements CommandExecutor, TabCompleter {
             if (player.hasPermission("opsecurity.reload")) allCommands.add("reload");
             for (String sub : allCommands) {
                 if (sub.startsWith(args[0].toLowerCase())) {
-                    if (sub.equals("register") && permissionHandler.isStaff(player) && !isRegistered(player)) suggestions.add(sub);
-                    else if (sub.equals("login") && permissionHandler.isStaff(player) && isRegistered(player)) suggestions.add(sub);
-                    else if ((sub.equals("forgot") || sub.equals("contactadmin") || sub.equals("check") || sub.equals("reset") || sub.equals("update") || sub.equals("reload")) && permissionHandler.isStaff(player) && isRegistered(player)) suggestions.add(sub);
+                    if (sub.equals("register") && permissionHandler.isStaff(player) && !loginManager.isRegistered(player)) suggestions.add(sub); // Sử dụng loginManager
+                    else if (sub.equals("login") && permissionHandler.isStaff(player) && loginManager.isRegistered(player)) suggestions.add(sub); // Sử dụng loginManager
+                    else if ((sub.equals("forgot") || sub.equals("contactadmin") || sub.equals("check") || sub.equals("reset") || sub.equals("update") || sub.equals("reload")) && permissionHandler.isStaff(player) && loginManager.isRegistered(player)) suggestions.add(sub); // Sử dụng loginManager
                     else if (player.hasPermission("opsecurity." + sub)) suggestions.add(sub);
                 }
             }
@@ -317,11 +321,11 @@ public class OpSecCommand implements CommandExecutor, TabCompleter {
                 if (player.hasPermission("opsecurity." + subCommand)) suggestions.add("<player>");
             } else if (subCommand.equals("update") || subCommand.equals("reload")) {
                 // Không cần gợi ý gì thêm cho update và reload
-            } else if (subCommand.equals("register") && permissionHandler.isStaff(player) && !isRegistered(player)) {
+            } else if (subCommand.equals("register") && permissionHandler.isStaff(player) && !loginManager.isRegistered(player)) { // Sử dụng loginManager
                 suggestions.add("<mật khẩu>");
-            } else if (subCommand.equals("login") && permissionHandler.isStaff(player) && isRegistered(player)) {
+            } else if (subCommand.equals("login") && permissionHandler.isStaff(player) && loginManager.isRegistered(player)) { // Sử dụng loginManager
                 suggestions.add("<mật khẩu>");
-            } else if (subCommand.equals("contactadmin") && permissionHandler.isStaff(player) && isRegistered(player)) {
+            } else if (subCommand.equals("contactadmin") && permissionHandler.isStaff(player) && loginManager.isRegistered(player)) { // Sử dụng loginManager
                 suggestions.add("<tin nhắn>");
             }
         } else if (args.length == 3 && (args[0].equalsIgnoreCase("addstaff") || args[0].equalsIgnoreCase("removestaff"))) {
@@ -330,13 +334,5 @@ public class OpSecCommand implements CommandExecutor, TabCompleter {
             if (player.hasPermission("opsecurity.reset")) suggestions.add("<password>");
         }
         return suggestions;
-    }
-
-    private boolean isAuthenticated(Player player) {
-        return authenticated.getOrDefault(player.getUniqueId(), false);
-    }
-
-    private boolean isRegistered(Player player) {
-        return configManager.getDataConfig().contains(player.getUniqueId().toString() + ".password");
     }
 }
