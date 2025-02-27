@@ -1,6 +1,6 @@
 package mc.sourcecode54.opSecurity;
 
-import net.md_5.bungee.api.ChatColor;
+import org.bukkit.ChatColor;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 
@@ -20,10 +20,10 @@ public class ConfigManager {
     public boolean useStaffYml;
     public int reminderInterval;
     public boolean enableLoginEffects;
-    public boolean enableManualReset; // Bật/tắt reset thủ công
-    public int maxPasswordLength; // Độ dài tối đa của mật khẩu
-    private static final int MAX_MESSAGES = 50; // Giới hạn số tin nhắn trong messages.yml
-    private static final long MAX_LOG_SIZE = 1024 * 1024; // 1MB giới hạn kích thước log
+    public boolean enableManualReset;
+    public int maxPasswordLength;
+    private static final int MAX_MESSAGES = 50;
+    private static final long MAX_LOG_SIZE = 1024 * 1024; // 1MB
 
     public ConfigManager(OpSecurity plugin) {
         this.plugin = plugin;
@@ -43,21 +43,33 @@ public class ConfigManager {
     }
 
     public void loadFiles() {
-        dataFile = new File(plugin.getDataFolder(), "data.yml");
-        if (!dataFile.exists()) createFile(dataFile, "data.yml");
-        dataConfig = YamlConfiguration.loadConfiguration(dataFile);
+        try {
+            // Load data.yml
+            dataFile = new File(plugin.getDataFolder(), "data.yml");
+            if (!dataFile.exists()) createFile(dataFile, "data.yml");
+            dataConfig = YamlConfiguration.loadConfiguration(dataFile);
 
-        staffFile = new File(plugin.getDataFolder(), "staff.yml");
-        if (!staffFile.exists() && useStaffYml) createFile(staffFile, "staff.yml");
-        staffConfig = YamlConfiguration.loadConfiguration(staffFile);
+            // Load staff.yml (nếu useStaffYml là true)
+            staffFile = new File(plugin.getDataFolder(), "staff.yml");
+            if (!staffFile.exists() && useStaffYml) createFile(staffFile, "staff.yml");
+            staffConfig = YamlConfiguration.loadConfiguration(staffFile);
 
-        logFile = new File(plugin.getDataFolder(), "security.log");
-        if (!logFile.exists()) createFile(logFile, "security.log");
-        optimizeLogFile();
-        messagesFile = new File(plugin.getDataFolder(), "messages.yml");
-        if (!messagesFile.exists()) createFile(messagesFile, "messages.yml");
-        optimizeMessagesFile();
-        messagesConfig = YamlConfiguration.loadConfiguration(messagesFile);
+            // Load security.log
+            logFile = new File(plugin.getDataFolder(), "security.log");
+            if (!logFile.exists()) createFile(logFile, "security.log");
+            optimizeLogFile();
+
+            // Load messages.yml
+            messagesFile = new File(plugin.getDataFolder(), "messages.yml");
+            if (!messagesFile.exists()) createFile(messagesFile, "messages.yml");
+            messagesConfig = YamlConfiguration.loadConfiguration(messagesFile);
+            optimizeMessagesFile();
+
+        } catch (Exception e) {
+            plugin.getLogger().severe("Lỗi khi load các file cấu hình: " + e.getMessage());
+            e.printStackTrace();
+            messagesConfig = new YamlConfiguration();
+        }
     }
 
     private void createFile(File file, String name) {
@@ -75,7 +87,7 @@ public class ConfigManager {
             if (dataConfig != null) dataConfig.save(dataFile);
             if (useStaffYml && staffConfig != null) staffConfig.save(staffFile);
             if (messagesConfig != null) {
-                optimizeMessagesFile(); // Tối ưu trước khi lưu
+                optimizeMessagesFile();
                 messagesConfig.save(messagesFile);
             }
         } catch (IOException e) {
@@ -84,9 +96,10 @@ public class ConfigManager {
     }
 
     private void optimizeLogFile() {
+        if (logFile == null) return;
         try {
             if (logFile.length() > MAX_LOG_SIZE) {
-                FileWriter writer = new FileWriter(logFile, false); // Ghi đè
+                FileWriter writer = new FileWriter(logFile, false);
                 writer.write("Log đã được tối ưu, giữ lại dòng gần nhất.\n");
                 writer.close();
                 plugin.getLogger().info("Đã tối ưu file security.log do vượt quá 1MB.");
@@ -97,10 +110,11 @@ public class ConfigManager {
     }
 
     private void optimizeMessagesFile() {
+        if (messagesConfig == null) return;
         if (messagesConfig.getConfigurationSection("messages") != null) {
             List<String> keys = new ArrayList<>(messagesConfig.getConfigurationSection("messages").getKeys(false));
             while (keys.size() > MAX_MESSAGES) {
-                String oldestKey = keys.get(0); // Lấy key cũ nhất
+                String oldestKey = keys.get(0);
                 messagesConfig.set("messages." + oldestKey, null);
                 keys.remove(0);
             }
@@ -112,17 +126,18 @@ public class ConfigManager {
     public FileConfiguration getMessagesConfig() { return messagesConfig; }
 
     public void logSecurityEvent(String event) {
+        if (logFile == null) return;
         try (FileWriter writer = new FileWriter(logFile, true)) {
             String timestamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
             writer.write("[" + timestamp + "] " + event + "\n");
-            optimizeLogFile(); // Tối ưu log sau mỗi ghi
+            optimizeLogFile();
         } catch (IOException e) {
             plugin.getLogger().warning("Không thể ghi log: " + e.getMessage());
         }
     }
 
     public void addStaffToYml(String playerName, String rank) {
-        if (!useStaffYml) return;
+        if (!useStaffYml || staffConfig == null) return;
         List<String> staffList = staffConfig.getStringList(rank);
         if (staffList == null) staffList = new ArrayList<>();
         if (!staffList.contains(playerName)) {
@@ -143,7 +158,7 @@ public class ConfigManager {
 
     public boolean isValidRank(String rank) {
         if (rank == null || rank.trim().isEmpty()) return false;
-        return useStaffYml && staffConfig.getKeys(false).contains(rank);
+        return useStaffYml && staffConfig != null && staffConfig.getKeys(false).contains(rank);
     }
 
     public String getDefaultOrValidRank(String rank) {
@@ -153,6 +168,7 @@ public class ConfigManager {
     }
 
     public void addMessageToAdmin(String type, String sender, String content, String rank) {
+        if (messagesConfig == null) return; // Kiểm tra null
         String validRank = getDefaultOrValidRank(rank);
         String timestamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
         String key = "messages." + timestamp;
@@ -164,6 +180,7 @@ public class ConfigManager {
     }
 
     public List<String> getPendingMessages() {
+        if (messagesConfig == null) return new ArrayList<>();
         List<String> pending = new ArrayList<>();
         if (messagesConfig.getConfigurationSection("messages") != null) {
             for (String key : messagesConfig.getConfigurationSection("messages").getKeys(false)) {
@@ -179,6 +196,7 @@ public class ConfigManager {
     }
 
     public void clearPendingMessages() {
+        if (messagesConfig == null) return; // Kiểm tra null
         messagesConfig.set("messages", null);
         saveFiles();
     }
