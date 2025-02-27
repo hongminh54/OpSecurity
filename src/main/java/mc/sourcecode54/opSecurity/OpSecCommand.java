@@ -320,12 +320,11 @@ public class OpSecCommand implements CommandExecutor, TabCompleter {
             } else if (subCommand.equals("check") || subCommand.equals("reset")) {
                 if (player.hasPermission("opsecurity." + subCommand)) suggestions.add("<player>");
             } else if (subCommand.equals("update") || subCommand.equals("reload")) {
-                // Không cần gợi ý gì thêm cho update và reload
-            } else if (subCommand.equals("register") && permissionHandler.isStaff(player) && !loginManager.isRegistered(player)) { // Sử dụng loginManager
+            } else if (subCommand.equals("register") && permissionHandler.isStaff(player) && !loginManager.isRegistered(player)) {
                 suggestions.add("<mật khẩu>");
-            } else if (subCommand.equals("login") && permissionHandler.isStaff(player) && loginManager.isRegistered(player)) { // Sử dụng loginManager
+            } else if (subCommand.equals("login") && permissionHandler.isStaff(player) && loginManager.isRegistered(player)) {
                 suggestions.add("<mật khẩu>");
-            } else if (subCommand.equals("contactadmin") && permissionHandler.isStaff(player) && loginManager.isRegistered(player)) { // Sử dụng loginManager
+            } else if (subCommand.equals("contactadmin") && permissionHandler.isStaff(player) && loginManager.isRegistered(player)) {
                 suggestions.add("<tin nhắn>");
             }
         } else if (args.length == 3 && (args[0].equalsIgnoreCase("addstaff") || args[0].equalsIgnoreCase("removestaff"))) {
