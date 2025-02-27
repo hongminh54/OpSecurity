@@ -1,5 +1,5 @@
 name: OpSecurity
-version: '1.0'
+version: '1.1'
 main: mc.sourcecode54.opSecurity.OpSecurity
 authors: [ SourceCode54 ]
 api-version: 1.13
