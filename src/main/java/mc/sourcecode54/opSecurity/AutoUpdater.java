@@ -22,7 +22,7 @@ import org.bukkit.command.CommandSender;
 public class AutoUpdater {
     private final JavaPlugin plugin;
     private static final String GITHUB_API_URL = "https://api.github.com/repos/hongminh54/OpSecurity/releases/latest";
-    private static final String CURRENT_VERSION = "1.0";
+    private static final String CURRENT_VERSION = "1.1";
     private boolean hasChecked = false;
 
     public AutoUpdater(JavaPlugin plugin) {
