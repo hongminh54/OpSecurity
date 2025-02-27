@@ -1,7 +1,6 @@
-# OpSecurity v1.1 Config File
+# OpSecurity Config v1.1
 use-luckperms: true
 use-staff-yml: true
 login-reminder-interval: 10
-enable-login-effects: true
-enable-manual-reset: true # Bật/tắt tính năng reset thủ công
+enable-manual-reset: true # Bật/tắt tính năng reset mật khẩu thủ công
 max-password-length: 16 # Độ dài tối đa của mật khẩu

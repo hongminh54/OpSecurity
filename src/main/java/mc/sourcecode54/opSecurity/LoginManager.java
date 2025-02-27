@@ -1,8 +1,6 @@
 package mc.sourcecode54.opSecurity;
 
 import org.bukkit.*;
-import org.bukkit.entity.EntityType;
-import org.bukkit.entity.Firework;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -12,9 +10,7 @@ import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.FireworkMeta;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.*;
 
@@ -59,26 +55,6 @@ public class LoginManager implements Listener {
         loginGUIs.put(player.getUniqueId(), gui);
         passwordInputs.put(player.getUniqueId(), new StringBuilder());
         authenticated.put(player.getUniqueId(), false);
-    }
-
-    public void playLoginEffects(Player player) {
-        if (!configManager.enableLoginEffects) return;
-
-        Location loc = player.getLocation();
-        player.playSound(loc, getCompatibleSound("ENTITY_PLAYER_LEVELUP", "LEVEL_UP"), 1.0f, 1.0f);
-
-        Firework fw = (Firework) player.getWorld().spawnEntity(loc, EntityType.FIREWORK);
-        FireworkMeta meta = fw.getFireworkMeta();
-        meta.addEffect(FireworkEffect.builder().withColor(Color.YELLOW).withFade(Color.ORANGE).with(FireworkEffect.Type.STAR).trail(true).flicker(true).build());
-        meta.setPower(1);
-        fw.setFireworkMeta(meta);
-
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                fw.detonate();
-            }
-        }.runTaskLater(plugin, 10L);
     }
 
     @EventHandler
@@ -137,21 +113,17 @@ public class LoginManager implements Listener {
                 authenticated.put(uuid, true);
                 player.sendMessage("§aĐăng nhập thành công! Rank hiện tại: " + rank);
                 configManager.logSecurityEvent(player.getName() + " đã đăng nhập thành công qua GUI với rank " + rank + ".");
-                playLoginEffects(player);
                 loginGUIs.remove(uuid);
                 passwordInputs.remove(uuid);
             } else {
                 player.sendMessage("§cMật khẩu sai! Nhập lại:");
                 configManager.logSecurityEvent(player.getName() + " đăng nhập thất bại qua GUI (mật khẩu sai).");
                 passwordInputs.put(uuid, new StringBuilder());
-                new BukkitRunnable() {
-                    @Override
-                    public void run() {
-                        if (player.isOnline() && !isAuthenticated(player)) {
-                            openLoginGUI(player);
-                        }
+                Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                    if (player.isOnline() && !isAuthenticated(player)) {
+                        openLoginGUI(player);
                     }
-                }.runTaskLater(plugin, 1L);
+                }, 1L);
             }
         }
     }

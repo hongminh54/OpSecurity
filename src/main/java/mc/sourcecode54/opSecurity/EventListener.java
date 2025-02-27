@@ -1,13 +1,16 @@
 package mc.sourcecode54.opSecurity;
 
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
+import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
-import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.List;
 
@@ -35,22 +38,19 @@ public class EventListener implements Listener {
             player.sendMessage(ChatColor.YELLOW + "Vui lòng nhập mật khẩu qua GUI hoặc /opsec login <mật khẩu>");
             loginManager.openLoginGUI(player);
             if (configManager.reminderInterval > 0) {
-                new BukkitRunnable() {
-                    int count = 0;
-                    @Override
-                    public void run() {
-                        if (!loginManager.isAuthenticated(player) && player.isOnline()) {
-                            if (count < 5) { // Giới hạn 5 lần nhắc nhở
-                                player.sendMessage(ChatColor.YELLOW + "Nhắc nhở: Hãy đăng nhập bằng GUI hoặc /opsec login!");
-                                count++;
-                            } else {
-                                cancel(); // Dừng nhắc nhở sau 5 lần
-                            }
+                Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+                    if (!loginManager.isAuthenticated(player) && player.isOnline()) {
+                        if (Bukkit.getScheduler().getPendingTasks().stream()
+                                .filter(task -> task.getOwner().equals(plugin))
+                                .count() < 5) { // Giới hạn 5 lần nhắc nhở
+                            player.sendMessage(ChatColor.YELLOW + "Nhắc nhở: Hãy đăng nhập bằng GUI hoặc /opsec login!");
                         } else {
-                            cancel(); // Dừng nếu đã đăng nhập
+                            Bukkit.getScheduler().cancelTasks(plugin); // Hủy nếu đã nhắc đủ 5 lần
                         }
+                    } else {
+                        Bukkit.getScheduler().cancelTasks(plugin); // Hủy nếu đã đăng nhập
                     }
-                }.runTaskTimer(plugin, 20L * configManager.reminderInterval, 20L * configManager.reminderInterval);
+                }, 20L * configManager.reminderInterval, 20L * configManager.reminderInterval);
             }
         }
 
@@ -82,8 +82,29 @@ public class EventListener implements Listener {
         if (!OpSecCommand.PLUGIN_COMMANDS.contains(command)) {
             event.setCancelled(true);
             player.sendMessage(ChatColor.RED + "Bạn phải đăng nhập trước khi dùng lệnh!");
-            player.kickPlayer(ChatColor.RED + "Đăng nhập bằng GUI hoặc /opsec login!");
+            player.kickPlayer(ChatColor.RED + "Đăng nhập bằng GUI hoặc /opsec login!"); // Khôi phục kick cho lệnh
             configManager.logSecurityEvent(player.getName() + " đã bị chặn lệnh '" + command + "' do chưa đăng nhập.");
         }
+    }
+
+    @EventHandler
+    public void onPlayerInteract(PlayerInteractEvent event) {
+        Player player = event.getPlayer();
+        if (!permissionHandler.isStaff(player) || !loginManager.isRegistered(player) || loginManager.isAuthenticated(player)) {
+            return; // Bỏ qua nếu không phải staff, chưa đăng ký, hoặc đã đăng nhập
+        }
+
+        // Kiểm tra nếu tương tác block hoặc item (ăn, click block, dùng item)
+        Action action = event.getAction();
+        if (action == Action.RIGHT_CLICK_BLOCK || action == Action.RIGHT_CLICK_AIR || action == Action.LEFT_CLICK_BLOCK || action == Action.LEFT_CLICK_AIR) {
+            event.setCancelled(true);
+            player.sendMessage(ChatColor.RED + "Bạn phải đăng nhập trước khi tương tác!");
+            player.kickPlayer(ChatColor.RED + "Đăng nhập bằng GUI hoặc /opsec login!"); // Kick khi tương tác block/item
+            configManager.logSecurityEvent(player.getName() + " đã bị chặn tương tác '" + action.name() + "' do chưa đăng nhập.");
+        }
+    }
+
+    @EventHandler
+    public void onInventoryClick(InventoryClickEvent event) {
     }
 }
