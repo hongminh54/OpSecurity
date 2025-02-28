@@ -1,6 +1,20 @@
-# OpSecurity Config v1.1
-use-luckperms: true
-use-staff-yml: true
-login-reminder-interval: 10
-enable-manual-reset: true # Bật/tắt tính năng reset mật khẩu thủ công
-max-password-length: 16 # Độ dài tối đa của mật khẩu
+# Cấu hình cho plugin OpSecurity
+use-luckperms: true  # Sử dụng LuckPerms để quản lý quyền
+use-staff-yml: true  # Sử dụng file staff.yml để lưu danh sách staff
+login-reminder-interval: 10  # Khoảng thời gian nhắc nhở đăng nhập (giây)
+enable-login-gui: false  # Bật/tắt GUI đăng nhập
+enable-manual-reset: true  # Bật/tắt reset mật khẩu thủ công
+max-password-length: 16  # Độ dài tối đa của mật khẩu
+
+# Cấu hình cơ sở dữ liệu
+database-type: "yml"  # Loại cơ sở dữ liệu: "yml", "mysql", hoặc "sqlite"
+mysql-host: "localhost"
+mysql-port: 3306
+mysql-database: "opsecurity"
+mysql-username: "root"
+mysql-password: "password"
+sqlite-file: "plugins/OpSecurity/database.db"
+
+# Liên kết liên hệ admin
+discord-link: "https://discord.gg/your-discord-invite"
+facebook-link: "https://www.facebook.com/your-admin-page"

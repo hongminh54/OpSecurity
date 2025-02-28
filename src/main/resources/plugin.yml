@@ -3,38 +3,64 @@ version: '1.1'
 main: mc.sourcecode54.opSecurity.OpSecurity
 authors: [ SourceCode54 ]
 api-version: 1.13
-softdepend: [LuckPerms]
+load: POSTWORLD
+depend: [LuckPerms]
 commands:
   opsec:
-    description: Lệnh bảo mật và quản lý staff
-    usage: /<command> [register|login|forgot|check|contactadmin|reset|update|reload] [args]
+    description: Quản lý bảo mật cho staff
+    usage: /<command> [register|login|forgot|check|contactadmin|reset|update|reload]
+    permission: opsecurity.use
+    aliases: [os]
   addstaff:
-    description: Thêm staff vào rank trong staff.yml
+    description: Thêm staff vào rank
     usage: /<command> <rank> <player>
     permission: opsecurity.addstaff
   removestaff:
-    description: Xóa staff khỏi rank trong staff.yml
+    description: Xóa staff khỏi rank
     usage: /<command> <rank> <player>
     permission: opsecurity.removestaff
 permissions:
-  security.staff:
-    description: Quyền dành cho staff
+  opsecurity.*:
+    description: Cho phép tất cả quyền của OpSecurity
+    default: op
+    children:
+      opsecurity.use: true
+      opsecurity.register: true
+      opsecurity.login: true
+      opsecurity.forgot: true
+      opsecurity.check: true
+      opsecurity.addstaff: true
+      opsecurity.removestaff: true
+      opsecurity.reset: true
+      opsecurity.update: true
+      opsecurity.reload: true
+  opsecurity.use:
+    description: Cho phép sử dụng lệnh /opsec
+    default: op
+  opsecurity.register:
+    description: Cho phép đăng ký tài khoản staff
+    default: false  # Mở quyền cho tất cả staff, không chỉ op
+  opsecurity.login:
+    description: Cho phép đăng nhập tài khoản staff
+    default: false  # Mở quyền cho tất cả staff, không chỉ op
+  opsecurity.forgot:
+    description: Cho phép yêu cầu reset mật khẩu
+    default: false
+  opsecurity.check:
+    description: Cho phép kiểm tra rank của player
     default: op
   opsecurity.addstaff:
-    description: Quyền thêm staff
+    description: Cho phép thêm staff vào rank
     default: op
   opsecurity.removestaff:
-    description: Quyền xóa staff
-    default: op
-  opsecurity.check:
-    description: Quyền kiểm tra rank
+    description: Cho phép xóa staff khỏi rank
     default: op
   opsecurity.reset:
-    description: Quyền reset mật khẩu thủ công
+    description: Cho phép reset mật khẩu staff
     default: op
   opsecurity.update:
-    description: Quyền kiểm tra và cập nhật plugin
+    description: Cho phép kiểm tra và cập nhật plugin
     default: op
   opsecurity.reload:
-    description: Quyền tải lại dữ liệu plugin
+    description: Cho phép tải lại cấu hình
     default: op

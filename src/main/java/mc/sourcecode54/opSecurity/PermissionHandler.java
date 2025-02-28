@@ -2,75 +2,59 @@ package mc.sourcecode54.opSecurity;
 
 import org.bukkit.entity.Player;
 import net.luckperms.api.LuckPerms;
-import net.luckperms.api.LuckPermsProvider;
 import net.luckperms.api.model.user.User;
+import net.luckperms.api.query.QueryOptions;
 
 public class PermissionHandler {
     private final OpSecurity plugin;
-    private final ConfigManager configManager;
-    private LuckPerms luckPermsAPI = null;
+    private final ConfigManager config;
+    private final LuckPerms luckPerms;
 
-    public PermissionHandler(OpSecurity plugin, ConfigManager configManager) {
+    public PermissionHandler(OpSecurity plugin, ConfigManager config) {
         this.plugin = plugin;
-        this.configManager = configManager;
-        setupPermissions();
-    }
-
-    private void setupPermissions() {
-        if (!configManager.useLuckPerms) {  // Dùng configManager.useLuckPerms
-            plugin.getLogger().info("LuckPerms bị tắt trong config.");
-            return;
-        }
-
-        if (plugin.getServer().getPluginManager().getPlugin("LuckPerms") != null) {
-            try {
-                luckPermsAPI = LuckPermsProvider.get();
-                plugin.getLogger().info("Đã kết nối với LuckPerms!");
-            } catch (IllegalStateException e) {
-                luckPermsAPI = null;
-                plugin.getLogger().warning("Không thể kết nối với LuckPerms! Kiểm tra plugin LuckPerms.");
-            }
-        } else {
-            plugin.getLogger().warning("LuckPerms không được cài đặt trên server!");
+        this.config = config;
+        this.luckPerms = plugin.getServer().getServicesManager().load(LuckPerms.class);
+        if (this.luckPerms == null) {
+            plugin.getLogger().severe("LuckPerms không được tìm thấy! Vui lòng cài đặt plugin LuckPerms.");
         }
     }
 
     public boolean isStaff(Player player) {
-        boolean isStaff = false;
-
-        if (configManager.useLuckPerms && luckPermsAPI != null) {  // Dùng configManager.useLuckPerms
-            User user = luckPermsAPI.getUserManager().getUser(player.getUniqueId());
-            isStaff = user != null && user.getCachedData().getPermissionData().checkPermission("security.staff").asBoolean();
-        }
-
-        if (configManager.useStaffYml && !isStaff) {
-            String playerName = player.getName();
-            for (String rank : configManager.getStaffConfig().getKeys(false)) {
-                if (configManager.getStaffConfig().getStringList(rank).contains(playerName)) {
-                    isStaff = true;
-                    break;
-                }
+        if (config.useLuckPerms && luckPerms != null) {
+            User user = luckPerms.getUserManager().getUser(player.getUniqueId());
+            if (user != null) {
+                return user.getInheritedGroups(QueryOptions.defaultContextualOptions()).stream()
+                        .anyMatch(group -> group.getName().equalsIgnoreCase("staff") || group.getName().equalsIgnoreCase("admin") || group.getName().equalsIgnoreCase("owner"));
             }
+            return false;
+        } else {
+            // Fallback nếu không dùng LuckPerms, kiểm tra trong staff.yml hoặc data.yml
+            return config.getStaffConfig() != null && config.getStaffConfig().getStringList("staff").contains(player.getName());
         }
-
-        return isStaff;
     }
 
     public String getPlayerRank(Player player) {
-        if (configManager.useLuckPerms && luckPermsAPI != null) {  // Dùng configManager.useLuckPerms
-            User user = luckPermsAPI.getUserManager().getUser(player.getUniqueId());
-            return user != null && user.getPrimaryGroup() != null ? user.getPrimaryGroup() : "Không có rank";
-        }
-
-        if (configManager.useStaffYml) {
-            String playerName = player.getName();
-            for (String rank : configManager.getStaffConfig().getKeys(false)) {
-                if (configManager.getStaffConfig().getStringList(rank).contains(playerName)) {
-                    return rank;
-                }
+        if (config.useLuckPerms && luckPerms != null) {
+            User user = luckPerms.getUserManager().getUser(player.getUniqueId());
+            if (user != null) {
+                return user.getPrimaryGroup() != null ? user.getPrimaryGroup() : "Default";
             }
+            return "Default";
+        } else {
+            // Fallback nếu không dùng LuckPerms, lấy rank từ data.yml
+            return config.getRank(player.getUniqueId().toString());
         }
+    }
 
-        return "Không có rank";
+    public void reload() {
+        if (config.useLuckPerms && luckPerms != null) {
+            // Reload dữ liệu từ LuckPerms (nếu cần)
+            plugin.getLogger().info("Đang reload quyền hạn từ LuckPerms...");
+            // Có thể gọi luckPerms.getUserManager().loadAllUsers() hoặc các phương thức khác
+        } else {
+            // Reload từ staff.yml hoặc data.yml
+            config.loadFiles();
+            plugin.getLogger().info("Đang reload quyền hạn từ file cấu hình...");
+        }
     }
 }

@@ -12,117 +12,136 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 
 public class LoginManager implements Listener {
     private final OpSecurity plugin;
-    private final ConfigManager configManager;
-    private final PermissionHandler permissionHandler;
+    private final ConfigManager config;
+    private final PermissionHandler perms;
     private final Map<UUID, Boolean> authenticated = new HashMap<>();
-    private final Map<UUID, Inventory> loginGUIs = new HashMap<>();
-    private final Map<UUID, StringBuilder> passwordInputs = new HashMap<>();
+    private final Map<UUID, Inventory> guis = new HashMap<>();
+    private final Map<UUID, StringBuilder> inputs = new HashMap<>();
 
-    public LoginManager(OpSecurity plugin, ConfigManager configManager, PermissionHandler permissionHandler) {
+    public LoginManager(OpSecurity plugin, ConfigManager config, PermissionHandler perms) {
         this.plugin = plugin;
-        this.configManager = configManager;
-        this.permissionHandler = permissionHandler;
+        this.config = config;
+        this.perms = perms;
+        Bukkit.getPluginManager().registerEvents(this, plugin);
+    }
+
+    public boolean isRegistered(Player player) {
+        return config.isRegistered(player.getUniqueId().toString());
     }
 
     public boolean isAuthenticated(Player player) {
         return authenticated.getOrDefault(player.getUniqueId(), false);
     }
 
-    public boolean isRegistered(Player player) {
-        return configManager.getDataConfig().contains(player.getUniqueId().toString() + ".password");
+    public void setAuthenticated(Player player) {
+        authenticated.put(player.getUniqueId(), true);
+    }
+
+    public void clearPlayerData(Player player) {
+        UUID uuid = player.getUniqueId();
+        authenticated.remove(uuid);
+        guis.remove(uuid);
+        inputs.remove(uuid);
+        authenticated.put(uuid, false);  // Đặt lại trạng thái ban đầu là false
     }
 
     public void openLoginGUI(Player player) {
-        Inventory gui = Bukkit.createInventory(null, 9, "§3Đăng nhập Staff");
-        ItemStack enter = new ItemStack(getCompatibleMaterial("GREEN_WOOL", "LIME_DYE"));
+        if (!config.enableLoginGUI) {
+            player.sendMessage(config.getMessage("login-cli-prompt", null));
+            return;
+        }
+        if (!player.hasPermission("opsecurity.login")) {
+            player.sendMessage(config.getMessage("no-permission", null));
+            return;
+        }
+        Inventory gui = Bukkit.createInventory(null, 9, ChatColor.DARK_AQUA + "Đăng nhập Staff");
+        ItemStack enter = new ItemStack(getMaterial("GREEN_WOOL", "LIME_DYE"), 1);
         ItemMeta enterMeta = enter.getItemMeta();
-        enterMeta.setDisplayName("§aNhập mật khẩu (Chat để nhập)");
+        enterMeta.setDisplayName(ChatColor.GREEN + "Nhập mật khẩu (Chat)");
         enter.setItemMeta(enterMeta);
 
-        ItemStack forgot = new ItemStack(getCompatibleMaterial("RED_WOOL", "RED_DYE"));
+        ItemStack forgot = new ItemStack(getMaterial("RED_WOOL", "RED_DYE"), 1);
         ItemMeta forgotMeta = forgot.getItemMeta();
-        forgotMeta.setDisplayName("§cQuên mật khẩu");
+        forgotMeta.setDisplayName(ChatColor.RED + "Quên mật khẩu");
         forgot.setItemMeta(forgotMeta);
 
         gui.setItem(3, enter);
         gui.setItem(5, forgot);
 
         player.openInventory(gui);
-        loginGUIs.put(player.getUniqueId(), gui);
-        passwordInputs.put(player.getUniqueId(), new StringBuilder());
-        authenticated.put(player.getUniqueId(), false);
+        guis.put(player.getUniqueId(), gui);
+        inputs.put(player.getUniqueId(), new StringBuilder());
+        setAuthenticated(player);  // Đặt trạng thái ban đầu là false khi mở GUI
+    }
+
+    private Material getMaterial(String modern, String legacy) {
+        try { return Material.valueOf(modern); } catch (IllegalArgumentException e) { return Material.valueOf(legacy); }
     }
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
         Player player = (Player) event.getWhoClicked();
         UUID uuid = player.getUniqueId();
-        if (!loginGUIs.containsKey(uuid) || event.getInventory() != loginGUIs.get(uuid)) return;
-
+        if (!guis.containsKey(uuid) || event.getInventory() != guis.get(uuid)) return;
         event.setCancelled(true);
-        ItemStack clicked = event.getCurrentItem();
-        if (clicked == null || !clicked.hasItemMeta()) return;
-
-        String displayName = clicked.getItemMeta().getDisplayName();
-        if (displayName.equals("§aNhập mật khẩu (Chat để nhập)")) {
-            player.sendMessage("§eNhập mật khẩu vào chat:");
-            player.closeInventory();
-        } else if (displayName.equals("§cQuên mật khẩu")) {
-            String rank = configManager.getDefaultOrValidRank(permissionHandler.getPlayerRank(player));
-            sendForgotRequest(player, rank);
-            player.closeInventory();
-        }
-    }
-
-    public void sendForgotRequest(Player player, String rank) {
-        String message = player.getName() + " (Rank: " + rank + ") yêu cầu reset mật khẩu. Vui lòng xử lý thủ công qua /opsec reset.";
-        boolean adminOnline = false;
-
-        for (Player admin : plugin.getServer().getOnlinePlayers()) {
-            if (permissionHandler.isStaff(admin)) {
-                admin.sendMessage("§e" + message);
-                adminOnline = true;
+        ItemStack item = event.getCurrentItem();
+        if (item == null || !item.hasItemMeta()) return;
+        String name = item.getItemMeta().getDisplayName();
+        if (name.equals(ChatColor.GREEN + "Nhập mật khẩu (Chat)")) {
+            if (!player.hasPermission("opsecurity.login")) {
+                player.sendMessage(config.getMessage("no-permission", null));
+                player.closeInventory();
+                return;
             }
+            player.sendMessage(config.getMessage("login-chat-prompt", Map.of("method", "chat")));
+            player.closeInventory();
+        } else if (name.equals(ChatColor.RED + "Quên mật khẩu")) {
+            if (!player.hasPermission("opsecurity.forgot")) {
+                player.sendMessage(config.getMessage("no-permission", null));
+                player.closeInventory();
+                return;
+            }
+            sendContactRequest(player, config.getDefaultOrValidRank(perms.getPlayerRank(player)), "forgot", null);
+            player.closeInventory();
         }
-        if (!adminOnline) {
-            configManager.addMessageToAdmin("forgot", player.getName(), "Yêu cầu reset mật khẩu", rank);
-            player.sendMessage("§eKhông có admin online. Yêu cầu đã được lưu vào hộp thư.");
-        }
-        configManager.logSecurityEvent(player.getName() + " đã yêu cầu reset mật khẩu với rank " + rank + ".");
-        player.sendMessage("§eVui lòng chờ admin xử lý yêu cầu reset mật khẩu qua /opsec reset.");
     }
 
     @EventHandler
     public void onPlayerChat(AsyncPlayerChatEvent event) {
         Player player = event.getPlayer();
         UUID uuid = player.getUniqueId();
-        if (passwordInputs.containsKey(uuid)) {
+        if (inputs.containsKey(uuid)) {
             event.setCancelled(true);
-            String message = event.getMessage();
-
-            StringBuilder passwordInput = passwordInputs.get(uuid);
-            passwordInput.append(message);
-
-            String storedPassword = configManager.getDataConfig().getString(uuid.toString() + ".password");
-            if (passwordInput.toString().equals(storedPassword)) {
-                String rank = configManager.getDefaultOrValidRank(permissionHandler.getPlayerRank(player));
-                authenticated.put(uuid, true);
-                player.sendMessage("§aĐăng nhập thành công! Rank hiện tại: " + rank);
-                configManager.logSecurityEvent(player.getName() + " đã đăng nhập thành công qua GUI với rank " + rank + ".");
-                loginGUIs.remove(uuid);
-                passwordInputs.remove(uuid);
+            if (!player.hasPermission("opsecurity.login")) {
+                player.sendMessage(config.getMessage("no-permission", null));
+                inputs.remove(uuid);
+                guis.remove(uuid);
+                return;
+            }
+            String msg = event.getMessage();
+            StringBuilder pwd = inputs.get(uuid);
+            pwd.append(msg);
+            String stored = config.getPassword(uuid.toString());
+            if (pwd.toString().equals(stored)) {
+                String rank = config.getRank(uuid.toString()); // Khai báo rank trong scope này
+                setAuthenticated(player);
+                player.sendMessage(config.getMessage("login-success", Map.of("rank", rank)));
+                config.logSecurityEvent(config.getMessage("login-gui-success-log", Map.of("player", player.getName(), "rank", rank)));
+                guis.remove(uuid);
+                inputs.remove(uuid);
+                clearPlayerData(player);
             } else {
-                player.sendMessage("§cMật khẩu sai! Nhập lại:");
-                configManager.logSecurityEvent(player.getName() + " đăng nhập thất bại qua GUI (mật khẩu sai).");
-                passwordInputs.put(uuid, new StringBuilder());
+                player.sendMessage(config.getMessage("login-failure", null));
+                config.logSecurityEvent(config.getMessage("login-log-failure", Map.of("player", player.getName())));
+                inputs.put(uuid, new StringBuilder());
                 Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                    if (player.isOnline() && !isAuthenticated(player)) {
-                        openLoginGUI(player);
-                    }
+                    if (player.isOnline() && !isAuthenticated(player)) openLoginGUI(player);
                 }, 1L);
             }
         }
@@ -132,36 +151,51 @@ public class LoginManager implements Listener {
     public void onInventoryClose(InventoryCloseEvent event) {
         Player player = (Player) event.getPlayer();
         UUID uuid = player.getUniqueId();
-        if (loginGUIs.containsKey(uuid) && !isAuthenticated(player)) {
-            player.sendMessage("§eVui lòng nhập mật khẩu vào chat hoặc dùng /opsec login!");
+        if (guis.containsKey(uuid) && !isAuthenticated(player)) {
+            player.sendMessage(config.getMessage("login-close-prompt", null));
         }
     }
 
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
-        if (permissionHandler.isStaff(player)) {
-            String rank = configManager.getDefaultOrValidRank(permissionHandler.getPlayerRank(player));
-            List<String> pendingMessages = configManager.getPendingMessages();
-            if (!pendingMessages.isEmpty()) {
-                player.sendMessage("§eBạn có tin nhắn chưa đọc (Rank: " + rank + "):");
-                for (String msg : pendingMessages) {
-                    player.sendMessage(msg);
+        if (perms.isStaff(player)) {
+            String rank = config.getRank(player.getUniqueId().toString()); // Khai báo rank trong scope này
+            if (isRegistered(player) && config.enableLoginGUI) {
+                if (player.hasPermission("opsecurity.login")) {
+                    openLoginGUI(player);
+                } else {
+                    player.sendMessage(config.getMessage("no-permission", null));
                 }
-                configManager.clearPendingMessages();
+            } else if (isRegistered(player)) {
+                if (player.hasPermission("opsecurity.login")) {
+                    player.sendMessage(config.getMessage("login-cli-prompt", null));
+                } else {
+                    player.sendMessage(config.getMessage("no-permission", null));
+                }
             }
         }
     }
 
-    public void clearPlayerData(Player player) {
-        UUID uuid = player.getUniqueId();
-        authenticated.remove(uuid);
-        loginGUIs.remove(uuid);
-        passwordInputs.remove(uuid);
+    public void sendContactRequest(Player player, String rank, String type, String message) {
+        String baseMsg = player.getName() + " (Rank: " + rank + ") " + (type.equals("forgot") ? "cần reset mật khẩu" : "gửi tin nhắn: " + message);
+        for (Player admin : plugin.getServer().getOnlinePlayers()) {
+            if (perms.isStaff(admin) && admin.hasPermission("opsecurity.forgot")) {  // Kiểm tra quyền cho admin nhận thông báo
+                admin.sendMessage(ChatColor.YELLOW + baseMsg);
+            }
+        }
+        if (!plugin.getServer().getOnlinePlayers().stream().anyMatch(p -> perms.isStaff(p) && p.hasPermission("opsecurity.forgot"))) {
+            Map<String, String> placeholders = new HashMap<>();
+            placeholders.put("discordLink", config.discordLink);
+            placeholders.put("facebookLink", config.facebookLink);
+            player.sendMessage(config.getMessage("contact-discord", placeholders));
+            player.sendMessage(config.getMessage("contact-facebook", placeholders));
+        }
+        config.logSecurityEvent(player.getName() + " " + (type.equals("forgot") ? "yêu cầu reset" : "gửi tin nhắn") + " với rank " + rank + (message != null ? ": " + message : "") + ".");
+        if (type.equals("forgot")) {
+            player.sendMessage(config.getMessage("reset-notify", null));
+        } else {
+            player.sendMessage(config.getMessage("contact-sent-offline", null));
+        }
     }
-
-    private Material getCompatibleMaterial(String modern, String legacy) {
-        try { return Material.valueOf(modern); } catch (IllegalArgumentException e) { return Material.valueOf(legacy); }
-    }
-
 }
