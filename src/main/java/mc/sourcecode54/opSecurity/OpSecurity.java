@@ -1,52 +1,44 @@
 package mc.sourcecode54.opSecurity;
 
+import mc.sourcecode54.opSecurity.command.ConsoleCommandHandler;
+import mc.sourcecode54.opSecurity.command.PlayerCommandHandler;
+import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class OpSecurity extends JavaPlugin {
-    private ConfigManager configManager;
-    private PermissionHandler permissionHandler;
-    private LoginManager loginManager;
+    private ConfigManager config;
+    private PermissionHandler perms;
+    private LoginManager loginMgr;
 
     @Override
     public void onEnable() {
         try {
-            getLogger().info("==========================================");
-            getLogger().info("OpSecurity v1.0 đang khởi động...");
-            getLogger().info("Tác giả: Hong Minh");
-            getLogger().info("Hỗ trợ Minecraft 1.8 - 1.21.4");
-            getLogger().info("==========================================");
+            config = new ConfigManager(this);
+            perms = new PermissionHandler(this, config);
+            loginMgr = new LoginManager(this, config, perms);
 
-            configManager = new ConfigManager(this);
-            permissionHandler = new PermissionHandler(this, configManager);
-            loginManager = new LoginManager(this, configManager, permissionHandler);
+            Bukkit.getConsoleSender().sendMessage("§eOpSecurity v1.1 by SourceCode54");
+            Bukkit.getConsoleSender().sendMessage("§aHỗ trợ phiên bản: 1.8.x - 1.21.x");
+            Bukkit.getConsoleSender().sendMessage("§aHỗ trợ máy chủ: Spigot, Paper,....");
 
-            getServer().getPluginManager().registerEvents(new EventListener(this, configManager, permissionHandler, loginManager), this);
-            getServer().getPluginManager().registerEvents(loginManager, this);
-            OpSecCommand opSecCommand = new OpSecCommand(this, configManager, permissionHandler, new AutoUpdater(this), loginManager);
-            getCommand("opsec").setExecutor(opSecCommand);
-            getCommand("opsec").setTabCompleter(opSecCommand);
-
+            getServer().getPluginManager().registerEvents(new EventListener(this, config, perms, loginMgr), this);
+            getServer().getPluginManager().registerEvents(loginMgr, this);  // Đăng ký LoginManager như Listener
+            OpSecCommand command = new OpSecCommand(this, config, perms, new AutoUpdater(this), loginMgr);
+            getCommand("opsec").setExecutor(command);
+            getCommand("opsec").setTabCompleter(command);
             new AutoUpdater(this).checkForUpdates();
-
-            getLogger().info("OpSecurity đã được kích hoạt thành công!");
+            getLogger().info("OpSecurity v1.1 đã được kích hoạt!");
         } catch (Exception e) {
             getLogger().severe("Lỗi khi kích hoạt OpSecurity: " + e.getMessage());
-            e.printStackTrace();
             getServer().getPluginManager().disablePlugin(this);
         }
     }
 
     @Override
     public void onDisable() {
-        if (configManager != null) {
-            configManager.saveFiles();
-            getLogger().info("OpSecurity đã được tắt và lưu dữ liệu thành công.");
-        } else {
-            getLogger().warning("ConfigManager là null, không thể lưu dữ liệu.");
+        if (config != null) {
+            config.saveFiles();
+            config.closeConnection(); // Đóng kết nối database
         }
-    }
-
-    public ConfigManager getConfigManager() {
-        return configManager;
     }
 }
