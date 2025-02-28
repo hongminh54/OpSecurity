@@ -1,8 +1,11 @@
 package mc.sourcecode54.opSecurity;
 
 import net.md_5.bungee.api.ChatColor;
+import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.Player;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -14,6 +17,7 @@ import java.util.Date;
 
 public class ConfigManager {
     private final OpSecurity plugin;
+    private final OpSecCommand opSecCommand;
     private File dataFile, staffFile, logFile, messagesFile;
     private FileConfiguration dataConfig, staffConfig, messagesConfig;
     public boolean useLuckPerms, useStaffYml, enableLoginGUI, enableManualReset;
@@ -21,9 +25,11 @@ public class ConfigManager {
     public String databaseType, mysqlHost, mysqlDatabase, mysqlUsername, mysqlPassword, sqliteFile, discordLink, facebookLink;
     public int mysqlPort;
     private Connection dbConnection;
+    private List<String> validRanks;
 
-    public ConfigManager(OpSecurity plugin) {
+    public ConfigManager(OpSecurity plugin, OpSecCommand opSecCommand) {
         this.plugin = plugin;
+        this.opSecCommand = opSecCommand;
         loadConfig();
         loadFiles();
         initializeDatabase();
@@ -46,7 +52,17 @@ public class ConfigManager {
         mysqlPassword = config.getString("mysql-password", "password");
         sqliteFile = config.getString("sqlite-file", "plugins/OpSecurity/database.db");
         discordLink = config.getString("discord-link", "https://discord.gg/your-discord-invite");
-        facebookLink = config.getString("facebook-link", "https://www.facebook.com/your-admin-page");
+        facebookLink = config.getString("facebook-link", "https://www.facebook.com/elliotvatybzi/");
+        validRanks = config.getStringList("valid-ranks");
+        if (validRanks == null || validRanks.isEmpty()) {
+            validRanks = List.of("Default", "Staff", "Admin", "Owner");
+            config.set("valid-ranks", validRanks);
+            try {
+                config.save(plugin.getConfig().getCurrentPath());
+            } catch (IOException e) {
+                plugin.getLogger().warning("Lỗi lưu valid-ranks vào config.yml: " + e.getMessage());
+            }
+        }
     }
 
     public void loadFiles() {
@@ -65,67 +81,67 @@ public class ConfigManager {
             if (messagesConfig.getKeys(false).isEmpty()) {
                 // Nếu messages.yml rỗng, tạo mặc định
                 messagesConfig.set("prefix", "&c[OpSecurity] ");
-                messagesConfig.set("no-permission", "&cKhông đủ quyền!");
+                messagesConfig.set("no-permission", "&cHong bé ơi :>!");
                 messagesConfig.set("invalid-usage", "&cDùng: /opsec [sub] [args] hoặc /os [sub] [args]");
                 messagesConfig.set("console-only-commands", "&cConsole chỉ dùng: reload, check, addstaff, removestaff, update, reset!");
                 messagesConfig.set("already-registered", "&cĐã đăng ký, dùng /opsec login hoặc /os login!");
                 messagesConfig.set("only-staff-register", "&cChỉ staff đăng ký!");
-                messagesConfig.set("password-too-long", "&cMật khẩu quá dài (≤ {maxLength} ký tự)!");
-                messagesConfig.set("register-success", "&aĐăng ký thành công! Rank: &b{rank} 🎉 Chào mừng bạn!");
+                messagesConfig.set("password-too-long", "&cMật khẩu quá dài (dưới {maxLength} ký tự)!");
+                messagesConfig.set("register-success", "&aĐăng ký thành công!");
                 messagesConfig.set("register-log", "{player} đăng ký với rank {rank}.");
                 messagesConfig.set("register-usage", "&cDùng: /opsec register <mật khẩu> hoặc /os register <mật khẩu>");
                 messagesConfig.set("only-staff-login", "&cChỉ staff đăng nhập!");
                 messagesConfig.set("not-registered", "&cChưa đăng ký! Dùng /opsec register <mật khẩu> hoặc /os register <mật khẩu>.");
                 messagesConfig.set("already-logged-in", "&cĐã đăng nhập, không cần lại!");
                 messagesConfig.set("login-usage", "&cDùng: /opsec login <mật khẩu> hoặc /os login <mật khẩu>");
-                messagesConfig.set("login-success", "&aĐăng nhập thành công! Rank: &b{rank} 🚀");
-                messagesConfig.set("login-failure", "&cMật khẩu sai! Thử lại hoặc liên hệ admin 😕");
+                messagesConfig.set("login-success", "&aĐăng nhập thành công!");
+                messagesConfig.set("login-failure", "&cMật khẩu sai! Thử lại hoặc liên hệ admin");
                 messagesConfig.set("login-log-failure", "{player} đăng nhập thất bại.");
-                messagesConfig.set("login-chat-prompt", "&eNhập mật khẩu vào chat: {method} 🖋️");
-                messagesConfig.set("login-close-prompt", "&eDùng chat hoặc /opsec login để đăng nhập! 🔑");
+                messagesConfig.set("login-chat-prompt", "&eNhập mật khẩu vào chat: {method}");
+                messagesConfig.set("login-close-prompt", "&eDùng chat hoặc /opsec login để đăng nhập!");
                 messagesConfig.set("login-gui-success-log", "{player} đăng nhập qua GUI với rank {rank}.");
-                messagesConfig.set("login-cli-prompt", "&eDùng /opsec login <mật khẩu> hoặc /os login <mật khẩu> (GUI tắt). 🔐");
-                messagesConfig.set("login-reminder", "&eNhắc nhở: Đăng nhập qua GUI hoặc /opsec login! ⏰");
-                messagesConfig.set("login-required-command", "&cĐăng nhập trước khi dùng lệnh! 🚫");
-                messagesConfig.set("login-kick-command", "&cDùng GUI hoặc /opsec login để đăng nhập! 🔒");
-                messagesConfig.set("command-blocked-log", "{player} bị chặn lệnh '{command}' do chưa đăng nhập.");
-                messagesConfig.set("login-required-interact", "&cĐăng nhập trước khi tương tác! 🚫");
-                messagesConfig.set("login-kick-interact", "&cDùng GUI hoặc /opsec login để đăng nhập! 🔒");
+                messagesConfig.set("login-cli-prompt", "&eDùng /opsec login <mật khẩu> hoặc /os login <mật khẩu>");
+                messagesConfig.set("login-reminder", "&eNhắc nhở: Đăng nhập qua GUI hoặc sử dụng /opsec login!");
+                messagesConfig.set("login-required-command", "&cĐăng nhập trước khi dùng lệnh!");
+                messagesConfig.set("login-kick-command", "&cPhát hiện bất thường vui lòng đăng nhập!");
+                messagesConfig.set("command-blocked-log", "{player} bị chặn lệnh '{command}' do chưa đăng nhập");
+                messagesConfig.set("login-required-interact", "&cĐăng nhập trước khi tương tác!");
+                messagesConfig.set("login-kick-interact", "&cPhát hiện bất thường vui lòng đăng nhập!");
                 messagesConfig.set("interact-blocked-log", "{player} bị chặn tương tác '{action}' do chưa đăng nhập.");
                 messagesConfig.set("forgot-not-needed", "&cKhông cần đăng nhập!");
                 messagesConfig.set("contactadmin-usage", "&cDùng: /opsec contactadmin <tin nhắn> hoặc /os contactadmin <tin nhắn>");
                 messagesConfig.set("check-usage", "&cDùng: /opsec check <player> hoặc /os check <player>");
-                messagesConfig.set("check-offline", "&cPlayer offline! 😞");
-                messagesConfig.set("check-result", "&a{player} có rank: &b{rank} ✅");
+                messagesConfig.set("check-offline", "&cNgười chơi không Online!");
+                messagesConfig.set("check-result", "&a{player} có rank: &b{rank}");
                 messagesConfig.set("check-log", "{sender} kiểm tra rank {player} là {rank}.");
-                messagesConfig.set("addstaff-usage", "&cDùng: /addstaff <rank> <player>");
-                messagesConfig.set("addstaff-offline", "&cPlayer offline! 😞");
-                messagesConfig.set("addstaff-invalid-rank", "&cRank không hợp lệ! 🛑");
-                messagesConfig.set("addstaff-success", "&aThêm {player} vào rank &b{rank}! 🎉");
+                messagesConfig.set("addstaff-usage", "&cDùng: /addstaff <rank> <player> hoặc /opsec addstaff <rank> <player>");
+                messagesConfig.set("addstaff-offline", "&cPlayer '{player}' không online và chưa từng chơi!");
+                messagesConfig.set("addstaff-invalid-rank", "&cRank '{rank}' không hợp lệ!");
+                messagesConfig.set("addstaff-success", "&aThêm {player} vào rank &b{rank}!");
                 messagesConfig.set("addstaff-log", "{sender} thêm {player} vào rank {rank}.");
-                messagesConfig.set("removestaff-usage", "&cDùng: /removestaff <rank> <player>");
-                messagesConfig.set("removestaff-offline", "&cPlayer offline! 😞");
-                messagesConfig.set("removestaff-not-in-rank", "&c{player} không trong rank {rank}! 🛑");
-                messagesConfig.set("removestaff-success", "&aXóa {player} khỏi rank &b{rank}! ✅");
+                messagesConfig.set("removestaff-usage", "&cDùng: /removestaff <rank> <player> hoặc /opsec removestaff <rank> <player>");
+                messagesConfig.set("removestaff-offline", "&cPlayer '{player}' không online và chưa từng chơi!");
+                messagesConfig.set("removestaff-not-in-rank", "&c{player} không trong rank '{rank}'!");
+                messagesConfig.set("removestaff-success", "&aXóa {player} khỏi rank &b{rank}!");
                 messagesConfig.set("removestaff-log", "{sender} xóa {player} khỏi rank {rank}.");
                 messagesConfig.set("reset-usage", "&cDùng: /opsec reset <player> <password> hoặc /os reset <player> <password>");
-                messagesConfig.set("reset-disabled", "&cReset thủ công bị tắt! 🛑");
-                messagesConfig.set("reset-invalid-password", "&cMật khẩu không hợp lệ (≤ {maxLength} ký tự)! 😕");
-                messagesConfig.set("reset-offline", "&cPlayer '{player}' không online! 😞");
-                messagesConfig.set("reset-not-staff", "&c{player} không phải staff hoặc chưa đăng ký! 🛑");
-                messagesConfig.set("reset-success", "&aReset mật khẩu cho {player} thành công! ✅");
-                messagesConfig.set("reset-notify", "&ePhải đợi admin xử lý hoặc liên hệ trực tiếp. 🔔");
+                messagesConfig.set("reset-disabled", "&cReset thủ công bị tắt!");
+                messagesConfig.set("reset-invalid-password", "&cMật khẩu không hợp lệ (dưới {maxLength} ký tự)!");
+                messagesConfig.set("reset-offline", "&cPlayer '{player}' không online!");
+                messagesConfig.set("reset-not-staff", "&c{player} không phải staff hoặc chưa đăng ký!");
+                messagesConfig.set("reset-success", "&aReset mật khẩu cho {player} thành công!");
+                messagesConfig.set("reset-notify", "&eVui lòng đợi admin xử lí.");
                 messagesConfig.set("reset-log", "{sender} reset mật khẩu {player} với rank {rank}.");
-                messagesConfig.set("update-checking", "&eKiểm tra và cập nhật... ⏳");
-                messagesConfig.set("reload-success", "&aTải lại dữ liệu thành công! 🎉");
-                messagesConfig.set("reload-failure", "&cLỗi tải lại: {error} 😞");
+                messagesConfig.set("update-checking", "&eKiểm tra và cập nhật...");
+                messagesConfig.set("reload-success", "&aTải lại dữ liệu thành công!");
+                messagesConfig.set("reload-failure", "&cLỗi tải lại: {error}");
                 messagesConfig.set("reload-log", "{sender} tải lại plugin.");
-                messagesConfig.set("reload-player-denied", "&cChỉ console hoặc owner mới có thể dùng lệnh này! 🚫");
-                messagesConfig.set("gui-open", "&eMở GUI đăng nhập! 🖥️");
-                messagesConfig.set("contact-discord", "&eLiên kết Discord: {discordLink} 📧");
-                messagesConfig.set("contact-facebook", "&eLiên kết Facebook: {facebookLink} 📧");
-                messagesConfig.set("contact-sent-offline", "&eTin nhắn đã gửi qua link nếu không có admin online. 🔔");
-                messagesConfig.set("luckperms-disabled", "&cLuckPerms không hoạt động! Vui lòng cài đặt plugin LuckPerms. 🚫");
+                messagesConfig.set("reload-player-denied", "&cChỉ console hoặc admin mới có thể dùng lệnh này!");
+                messagesConfig.set("gui-open", "&eMở GUI đăng nhập!");
+                messagesConfig.set("contact-discord", "&eLiên kết Discord: {discordLink}");
+                messagesConfig.set("contact-facebook", "&eLiên kết Facebook: {facebookLink}");
+                messagesConfig.set("contact-sent-offline", "&eTin nhắn đã gửi qua!");
+                messagesConfig.set("luckperms-disabled", "&cLuckPerms không hoạt động! Vui lòng cài đặt plugin LuckPerms.");
                 saveMessages();
             }
         } catch (Exception e) {
@@ -236,8 +252,32 @@ public class ConfigManager {
         }
     }
 
-    public boolean isValidRank(String rank) { return useStaffYml && staffConfig != null && staffConfig.contains(rank); }
-    public String getDefaultOrValidRank(String rank) { return isValidRank(rank) ? rank : "Default"; }
+    public boolean isValidRank(String rank) {
+        if (useLuckPerms && opSecCommand != null && opSecCommand.getLuckPerms() != null) {
+            // Kiểm tra rank từ LuckPerms
+            return opSecCommand.getLuckPerms().getGroupManager().getLoadedGroups().stream()
+                    .anyMatch(group -> group.getName().equalsIgnoreCase(rank)) || validRanks.stream()
+                    .anyMatch(valid -> valid.equalsIgnoreCase(rank));
+        }
+        if (useStaffYml && staffConfig != null) {
+            // Kiểm tra rank từ staff.yml
+            return staffConfig.contains(rank) || validRanks.stream()
+                    .anyMatch(valid -> valid.equalsIgnoreCase(rank));
+        }
+        return validRanks.stream().anyMatch(valid -> valid.equalsIgnoreCase(rank));  // Fallback về valid-ranks
+    }
+
+    public String getDefaultOrValidRank(String rank) {
+        if (isValidRank(rank)) return rank;
+        // Nếu rank không hợp lệ, trả về rank từ LuckPerms hoặc Default
+        if (useLuckPerms && opSecCommand != null && opSecCommand.getLuckPerms() != null && opSecCommand.perms != null) {
+            Player player = Bukkit.getPlayer(rank);
+            if (player != null) {
+                return opSecCommand.perms.getPlayerRank(player);
+            }
+        }
+        return validRanks.contains("Default") ? "Default" : validRanks.get(0);
+    }
 
     public boolean canResetPassword() { return enableManualReset; }
     public boolean isPasswordValid(String password) { return password != null && !password.trim().isEmpty() && password.length() <= maxPasswordLength; }
@@ -256,6 +296,10 @@ public class ConfigManager {
             }
         }
         return false;
+    }
+
+    public boolean isRegistered(OfflinePlayer offlinePlayer) {
+        return isRegistered(offlinePlayer.getUniqueId().toString());
     }
 
     public String getPassword(String uuid) {
@@ -355,5 +399,9 @@ public class ConfigManager {
                 plugin.getLogger().warning("Lỗi đóng kết nối DB: " + e.getMessage());
             }
         }
+    }
+
+    public List<String> getValidRanks() {
+        return validRanks;
     }
 }

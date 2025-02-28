@@ -1,10 +1,19 @@
-# Cấu hình cho plugin OpSecurity
-use-luckperms: true  # Sử dụng LuckPerms để quản lý quyền
+# OpSecurity - Quản lý bảo mật cho staff v1.1
+use-luckperms: true  # Bắt buộc sử dụng LuckPerms để quản lý quyền
 use-staff-yml: true  # Sử dụng file staff.yml để lưu danh sách staff
 login-reminder-interval: 10  # Khoảng thời gian nhắc nhở đăng nhập (giây)
 enable-login-gui: false  # Bật/tắt GUI đăng nhập
 enable-manual-reset: true  # Bật/tắt reset mật khẩu thủ công
 max-password-length: 16  # Độ dài tối đa của mật khẩu
+
+# Danh sách rank hợp lệ
+valid-ranks:
+  - Default
+  - Staff
+  - Admin
+  - Owner
+  # - Builder (phân biệt chữ hoa với thường vì nó sẽ quyết định khi bạn muốn thêm một rank mới
+  # Ví dụ: Trong LuckPerms bạn để tên group của Admin là admin thì plugin sẽ nhận tên admin và ngược lại
 
 # Cấu hình cơ sở dữ liệu
 database-type: "yml"  # Loại cơ sở dữ liệu: "yml", "mysql", hoặc "sqlite"

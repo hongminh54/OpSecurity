@@ -1,5 +1,6 @@
 package mc.sourcecode54.opSecurity;
 
+import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import net.luckperms.api.LuckPerms;
 import net.luckperms.api.model.user.User;
@@ -24,12 +25,24 @@ public class PermissionHandler {
             User user = luckPerms.getUserManager().getUser(player.getUniqueId());
             if (user != null) {
                 return user.getInheritedGroups(QueryOptions.defaultContextualOptions()).stream()
-                        .anyMatch(group -> group.getName().equalsIgnoreCase("staff") || group.getName().equalsIgnoreCase("admin") || group.getName().equalsIgnoreCase("owner"));
+                        .anyMatch(group -> config.getValidRanks().stream().anyMatch(valid -> valid.equalsIgnoreCase(group.getName())));
             }
             return false;
         } else {
-            // Fallback nếu không dùng LuckPerms, kiểm tra trong staff.yml hoặc data.yml
             return config.getStaffConfig() != null && config.getStaffConfig().getStringList("staff").contains(player.getName());
+        }
+    }
+
+    public boolean isStaff(OfflinePlayer offlinePlayer) {
+        if (config.useLuckPerms && luckPerms != null) {
+            User user = luckPerms.getUserManager().getUser(offlinePlayer.getUniqueId());
+            if (user != null) {
+                return user.getInheritedGroups(QueryOptions.defaultContextualOptions()).stream()
+                        .anyMatch(group -> config.getValidRanks().stream().anyMatch(valid -> valid.equalsIgnoreCase(group.getName())));
+            }
+            return false;
+        } else {
+            return config.getDataConfig() != null && config.getDataConfig().contains(offlinePlayer.getUniqueId().toString() + ".rank");
         }
     }
 
@@ -37,22 +50,38 @@ public class PermissionHandler {
         if (config.useLuckPerms && luckPerms != null) {
             User user = luckPerms.getUserManager().getUser(player.getUniqueId());
             if (user != null) {
-                return user.getPrimaryGroup() != null ? user.getPrimaryGroup() : "Default";
+                String primaryGroup = user.getPrimaryGroup();
+                if (primaryGroup != null && config.isValidRank(primaryGroup)) {
+                    return primaryGroup;
+                }
+                return config.getDefaultOrValidRank("Default");
             }
             return "Default";
         } else {
-            // Fallback nếu không dùng LuckPerms, lấy rank từ data.yml
             return config.getRank(player.getUniqueId().toString());
+        }
+    }
+
+    public String getPlayerRank(OfflinePlayer offlinePlayer) {
+        if (config.useLuckPerms && luckPerms != null) {
+            User user = luckPerms.getUserManager().getUser(offlinePlayer.getUniqueId());
+            if (user != null) {
+                String primaryGroup = user.getPrimaryGroup();
+                if (primaryGroup != null && config.isValidRank(primaryGroup)) {
+                    return primaryGroup;
+                }
+                return config.getDefaultOrValidRank("Default");
+            }
+            return "Default";
+        } else {
+            return config.getRank(offlinePlayer.getUniqueId().toString());
         }
     }
 
     public void reload() {
         if (config.useLuckPerms && luckPerms != null) {
-            // Reload dữ liệu từ LuckPerms (nếu cần)
             plugin.getLogger().info("Đang reload quyền hạn từ LuckPerms...");
-            // Có thể gọi luckPerms.getUserManager().loadAllUsers() hoặc các phương thức khác
         } else {
-            // Reload từ staff.yml hoặc data.yml
             config.loadFiles();
             plugin.getLogger().info("Đang reload quyền hạn từ file cấu hình...");
         }
