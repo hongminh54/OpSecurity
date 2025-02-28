@@ -35,6 +35,10 @@ public class LoginManager implements Listener {
         return config.isRegistered(player.getUniqueId().toString());
     }
 
+    public boolean isRegistered(OfflinePlayer offlinePlayer) {
+        return config.isRegistered(offlinePlayer.getUniqueId().toString());
+    }
+
     public boolean isAuthenticated(Player player) {
         return authenticated.getOrDefault(player.getUniqueId(), false);
     }
@@ -48,7 +52,7 @@ public class LoginManager implements Listener {
         authenticated.remove(uuid);
         guis.remove(uuid);
         inputs.remove(uuid);
-        authenticated.put(uuid, false);  // Đặt lại trạng thái ban đầu là false
+        authenticated.put(uuid, false);
     }
 
     public void openLoginGUI(Player player) {
@@ -77,7 +81,7 @@ public class LoginManager implements Listener {
         player.openInventory(gui);
         guis.put(player.getUniqueId(), gui);
         inputs.put(player.getUniqueId(), new StringBuilder());
-        setAuthenticated(player);  // Đặt trạng thái ban đầu là false khi mở GUI
+        setAuthenticated(player);
     }
 
     private Material getMaterial(String modern, String legacy) {
@@ -129,7 +133,10 @@ public class LoginManager implements Listener {
             pwd.append(msg);
             String stored = config.getPassword(uuid.toString());
             if (pwd.toString().equals(stored)) {
-                String rank = config.getRank(uuid.toString()); // Khai báo rank trong scope này
+                String rank = config.getRank(uuid.toString());
+                if (!config.isValidRank(rank)) {
+                    rank = config.getDefaultOrValidRank(perms.getPlayerRank(player));
+                }
                 setAuthenticated(player);
                 player.sendMessage(config.getMessage("login-success", Map.of("rank", rank)));
                 config.logSecurityEvent(config.getMessage("login-gui-success-log", Map.of("player", player.getName(), "rank", rank)));
@@ -160,7 +167,10 @@ public class LoginManager implements Listener {
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
         if (perms.isStaff(player)) {
-            String rank = config.getRank(player.getUniqueId().toString()); // Khai báo rank trong scope này
+            String rank = config.getRank(player.getUniqueId().toString());
+            if (!config.isValidRank(rank)) {
+                rank = config.getDefaultOrValidRank(perms.getPlayerRank(player));
+            }
             if (isRegistered(player) && config.enableLoginGUI) {
                 if (player.hasPermission("opsecurity.login")) {
                     openLoginGUI(player);
@@ -169,7 +179,7 @@ public class LoginManager implements Listener {
                 }
             } else if (isRegistered(player)) {
                 if (player.hasPermission("opsecurity.login")) {
-                    player.sendMessage(config.getMessage("login-cli-prompt", null));
+                    player.sendMessage(config.getMessage("login-cli-prompt", Map.of("rank", rank)));
                 } else {
                     player.sendMessage(config.getMessage("no-permission", null));
                 }
@@ -180,7 +190,7 @@ public class LoginManager implements Listener {
     public void sendContactRequest(Player player, String rank, String type, String message) {
         String baseMsg = player.getName() + " (Rank: " + rank + ") " + (type.equals("forgot") ? "cần reset mật khẩu" : "gửi tin nhắn: " + message);
         for (Player admin : plugin.getServer().getOnlinePlayers()) {
-            if (perms.isStaff(admin) && admin.hasPermission("opsecurity.forgot")) {  // Kiểm tra quyền cho admin nhận thông báo
+            if (perms.isStaff(admin) && admin.hasPermission("opsecurity.forgot")) {
                 admin.sendMessage(ChatColor.YELLOW + baseMsg);
             }
         }

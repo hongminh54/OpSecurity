@@ -13,7 +13,8 @@ public class OpSecurity extends JavaPlugin {
     @Override
     public void onEnable() {
         try {
-            config = new ConfigManager(this);
+            OpSecCommand command = new OpSecCommand(this, null, null, new AutoUpdater(this), null); // Tạm thời truyền null cho các tham số khác
+            config = new ConfigManager(this, command);  // Truyền OpSecCommand hợp lệ ngay từ đầu
             perms = new PermissionHandler(this, config);
             loginMgr = new LoginManager(this, config, perms);
 
@@ -21,9 +22,10 @@ public class OpSecurity extends JavaPlugin {
             Bukkit.getConsoleSender().sendMessage("§aHỗ trợ phiên bản: 1.8.x - 1.21.x");
             Bukkit.getConsoleSender().sendMessage("§aHỗ trợ máy chủ: Spigot, Paper,....");
 
+            command = new OpSecCommand(this, config, perms, new AutoUpdater(this), loginMgr);
+
             getServer().getPluginManager().registerEvents(new EventListener(this, config, perms, loginMgr), this);
-            getServer().getPluginManager().registerEvents(loginMgr, this);  // Đăng ký LoginManager như Listener
-            OpSecCommand command = new OpSecCommand(this, config, perms, new AutoUpdater(this), loginMgr);
+            getServer().getPluginManager().registerEvents(loginMgr, this);
             getCommand("opsec").setExecutor(command);
             getCommand("opsec").setTabCompleter(command);
             new AutoUpdater(this).checkForUpdates();
@@ -38,7 +40,7 @@ public class OpSecurity extends JavaPlugin {
     public void onDisable() {
         if (config != null) {
             config.saveFiles();
-            config.closeConnection(); // Đóng kết nối database
+            config.closeConnection();
         }
     }
 }

@@ -4,10 +4,9 @@ import mc.sourcecode54.opSecurity.command.ConsoleCommandHandler;
 import mc.sourcecode54.opSecurity.command.PlayerCommandHandler;
 import net.luckperms.api.LuckPerms;
 import net.luckperms.api.model.group.Group;
-import net.luckperms.api.model.user.User;
-import net.luckperms.api.query.QueryOptions;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -16,6 +15,7 @@ import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 public class OpSecCommand implements CommandExecutor, TabCompleter {
@@ -43,6 +43,15 @@ public class OpSecCommand implements CommandExecutor, TabCompleter {
             plugin.getLogger().severe("LuckPerms không được tìm thấy! Vui lòng cài đặt plugin LuckPerms.");
             Bukkit.getOnlinePlayers().forEach(p -> p.sendMessage(config.getMessage("luckperms-disabled", null)));
         }
+    }
+
+    public LuckPerms getLuckPerms() {
+        return luckPerms;
+    }
+
+    public UUID getUUIDFromPlayerName(String playerName) {
+        OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(playerName);
+        return offlinePlayer.getUniqueId();
     }
 
     @Override
@@ -99,9 +108,17 @@ public class OpSecCommand implements CommandExecutor, TabCompleter {
                     break;
                 case "check": case "reset":
                     if (sender.hasPermission("opsecurity." + args[0].toLowerCase())) {
-                        return Bukkit.getOnlinePlayers().stream()
-                                .map(Player::getName)
+                        List<String> players = new ArrayList<>();
+                        for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
+                            players.add(onlinePlayer.getName());
+                        }
+                        for (OfflinePlayer offlinePlayer : Bukkit.getOfflinePlayers()) {
+                            players.add(offlinePlayer.getName());
+                        }
+                        return players.stream()
                                 .filter(name -> name.toLowerCase().startsWith(args[1].toLowerCase()))
+                                .distinct()
+                                .sorted()
                                 .collect(Collectors.toList());
                     }
                     break;
@@ -123,9 +140,17 @@ public class OpSecCommand implements CommandExecutor, TabCompleter {
             }
         } else if (args.length == 3 && (args[0].equalsIgnoreCase("addstaff") || args[0].equalsIgnoreCase("removestaff"))) {
             if (sender.hasPermission("opsecurity." + args[0].toLowerCase())) {
-                return Bukkit.getOnlinePlayers().stream()
-                        .map(Player::getName)
+                List<String> players = new ArrayList<>();
+                for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
+                    players.add(onlinePlayer.getName());
+                }
+                for (OfflinePlayer offlinePlayer : Bukkit.getOfflinePlayers()) {
+                    players.add(offlinePlayer.getName());
+                }
+                return players.stream()
                         .filter(name -> name.toLowerCase().startsWith(args[2].toLowerCase()))
+                        .distinct()
+                        .sorted()
                         .collect(Collectors.toList());
             }
         } else if (args.length == 3 && args[0].equalsIgnoreCase("reset") && sender.hasPermission("opsecurity.reset")) {
@@ -143,7 +168,7 @@ public class OpSecCommand implements CommandExecutor, TabCompleter {
     }
 
     private void showHelp(Player player) {
-        player.sendMessage(ChatColor.DARK_GRAY + "┌───────────" + ChatColor.GOLD + " OpSecurity " + ChatColor.DARK_GRAY + "───────────┐");
+        player.sendMessage(ChatColor.DARK_GRAY + "┌───────────" + ChatColor.GOLD + " OpSecurity v1.1 by" + ChatColor.YELLOW + "TYBZI" + ChatColor.DARK_GRAY + "───────────┐");
         player.sendMessage(ChatColor.GRAY + "Lệnh chính: /opsec hoặc /os");
         if (player.hasPermission("opsecurity.register")) {
             player.sendMessage(ChatColor.GRAY + "  • " + ChatColor.GREEN + "/opsec register <mật khẩu>" + ChatColor.GRAY + " - Đăng ký tài khoản staff.");
@@ -152,28 +177,28 @@ public class OpSecCommand implements CommandExecutor, TabCompleter {
             player.sendMessage(ChatColor.GRAY + "  • " + ChatColor.GREEN + "/opsec login <mật khẩu>" + ChatColor.GRAY + " - Đăng nhập vào tài khoản.");
         }
         if (player.hasPermission("opsecurity.forgot")) {
-            player.sendMessage(ChatColor.GRAY + "  • " + ChatColor.GREEN + "/opsec forgot" + ChatColor.GRAY + " - Yêu cầu reset mật khẩu (click liên kết).");
+            player.sendMessage(ChatColor.GRAY + "  • " + ChatColor.GREEN + "/opsec forgot" + ChatColor.GRAY + " - Yêu cầu reset mật khẩu.");
         }
         if (player.hasPermission("opsecurity.contactadmin")) {
-            player.sendMessage(ChatColor.GRAY + "  • " + ChatColor.GREEN + "/opsec contactadmin <tin nhắn>" + ChatColor.GRAY + " - Liên hệ admin (click liên kết).");
+            player.sendMessage(ChatColor.GRAY + "  • " + ChatColor.GREEN + "/opsec contactadmin <tin nhắn>" + ChatColor.GRAY + " - Liên hệ Admin.");
         }
         if (player.hasPermission("opsecurity.check")) {
-            player.sendMessage(ChatColor.GRAY + "  • " + ChatColor.GREEN + "/opsec check <player>" + ChatColor.GRAY + " - Kiểm tra rank của player.");
+            player.sendMessage(ChatColor.GRAY + "  • " + ChatColor.GREEN + "/opsec check <player>" + ChatColor.GRAY + " - Kiểm tra rank của Player.");
         }
         if (player.hasPermission("opsecurity.addstaff")) {
-            player.sendMessage(ChatColor.GRAY + "  • " + ChatColor.GREEN + "/addstaff <rank> <player>" + ChatColor.GRAY + " - Thêm staff vào rank.");
+            player.sendMessage(ChatColor.GRAY + "  • " + ChatColor.GREEN + "/addstaff <rank> <player> hoặc /opsec addstaff <rank> <player>" + ChatColor.GRAY + " - Thêm staff vào rank.");
         }
         if (player.hasPermission("opsecurity.removestaff")) {
-            player.sendMessage(ChatColor.GRAY + "  • " + ChatColor.GREEN + "/removestaff <rank> <player>" + ChatColor.GRAY + " - Xóa staff khỏi rank.");
+            player.sendMessage(ChatColor.GRAY + "  • " + ChatColor.GREEN + "/removestaff <rank> <player> hoặc /opsec removestaff <rank> <player>" + ChatColor.GRAY + " - Xóa staff khỏi rank.");
         }
         if (player.hasPermission("opsecurity.reset")) {
             player.sendMessage(ChatColor.GRAY + "  • " + ChatColor.GREEN + "/opsec reset <player> <password>" + ChatColor.GRAY + " - Reset mật khẩu staff.");
         }
         if (player.hasPermission("opsecurity.update")) {
-            player.sendMessage(ChatColor.GRAY + "  • " + ChatColor.GREEN + "/opsec update" + ChatColor.GRAY + " - Kiểm tra và cập nhật plugin.");
+            player.sendMessage(ChatColor.GRAY + "  • " + ChatColor.GREEN + "/opsec update" + ChatColor.GRAY + " - Kiểm tra và cập nhật plugin (Plugin sẽ tự động update khi có bản mới).");
         }
         if (player.hasPermission("opsecurity.reload")) {
-            player.sendMessage(ChatColor.GRAY + "  • " + ChatColor.GREEN + "/opsec reload" + ChatColor.GRAY + " - Tải lại cấu hình.");
+            player.sendMessage(ChatColor.GRAY + "  • " + ChatColor.GREEN + "/opsec reload" + ChatColor.GRAY + " - Tải lại cấu hình (chỉ áp dụng cho console).");
         }
         player.sendMessage(ChatColor.DARK_GRAY + "└──────────────────────────────────┘");
     }

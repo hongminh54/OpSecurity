@@ -21,9 +21,8 @@ public class ConsoleCommandHandler {
     }
 
     public boolean handleCommand(CommandSender sender, String subCommand, String[] args) {
-        switch (subCommand.toLowerCase()) {  // Đảm bảo so sánh không phân biệt chữ hoa/thường
+        switch (subCommand.toLowerCase()) {
             case "reload":
-                // Chỉ cho phép console hoặc owner (có quyền opsecurity.reload)
                 if (sender instanceof Player) {
                     Player player = (Player) sender;
                     if (!player.isOp() && !player.hasPermission("opsecurity.reload")) {
@@ -32,12 +31,11 @@ public class ConsoleCommandHandler {
                     }
                 }
                 try {
-                    opSecCommand.plugin.reloadConfig();  // Tải lại config.yml
-                    opSecCommand.config.loadConfig();  // Tải lại cấu hình từ config.yml
-                    opSecCommand.config.loadFiles();  // Tải lại messages.yml, data.yml, staff.yml
-                    opSecCommand.config.initializeDatabase();  // Tái khởi tạo kết nối cơ sở dữ liệu nếu cần
-                    // Cập nhật lại các instance liên quan
-                    opSecCommand.perms.reload();  // Giả định PermissionHandler có phương thức reload
+                    opSecCommand.plugin.reloadConfig();
+                    opSecCommand.config.loadConfig();
+                    opSecCommand.config.loadFiles();
+                    opSecCommand.config.initializeDatabase();
+                    opSecCommand.perms.reload();
                     sender.sendMessage(opSecCommand.config.getMessage("reload-success", null));
                     opSecCommand.config.logSecurityEvent(opSecCommand.config.getMessage("reload-log", Map.of("sender", sender.getName() != null ? sender.getName() : "Console")));
                 } catch (Exception e) {
@@ -55,12 +53,12 @@ public class ConsoleCommandHandler {
                     sender.sendMessage(opSecCommand.config.getMessage("check-usage", null));
                     return true;
                 }
-                Player target = Bukkit.getPlayer(args[1]); // Khai báo target rõ ràng trong case này
+                Player target = Bukkit.getPlayer(args[1]);
                 if (target == null) {
                     sender.sendMessage(opSecCommand.config.getMessage("check-offline", Map.of("player", args[1])));
                     return true;
                 }
-                String rank = opSecCommand.config.getRank(target.getUniqueId().toString()); // Khai báo rank trong case này
+                String rank = opSecCommand.config.getRank(target.getUniqueId().toString());
                 sender.sendMessage(opSecCommand.config.getMessage("check-result", Map.of("player", target.getName(), "rank", rank)));
                 opSecCommand.config.logSecurityEvent(opSecCommand.config.getMessage("check-log", Map.of("sender", sender.getName() != null ? sender.getName() : "Console", "player", target.getName(), "rank", rank)));
                 return true;
@@ -75,7 +73,7 @@ public class ConsoleCommandHandler {
                     return true;
                 }
                 String addRank = args[1];
-                String targetName = args[2]; // Khai báo targetName rõ ràng trong case này
+                String targetName = args[2];
                 target = Bukkit.getPlayer(targetName);
                 if (target == null) {
                     sender.sendMessage(opSecCommand.config.getMessage("addstaff-offline", Map.of("player", targetName)));
@@ -86,7 +84,7 @@ public class ConsoleCommandHandler {
                     return true;
                 }
                 opSecCommand.config.addStaffToYml(targetName, addRank);
-                String uuid = target.getUniqueId().toString(); // Khai báo uuid trong case này
+                String uuid = target.getUniqueId().toString();
                 opSecCommand.config.setPassword(uuid, "", addRank, null);
                 sender.sendMessage(opSecCommand.config.getMessage("addstaff-success", Map.of("player", targetName, "rank", addRank)));
                 opSecCommand.config.logSecurityEvent(opSecCommand.config.getMessage("addstaff-log", Map.of("sender", sender.getName() != null ? sender.getName() : "Console", "player", targetName, "rank", addRank)));
@@ -102,7 +100,7 @@ public class ConsoleCommandHandler {
                     return true;
                 }
                 String removeRank = args[1];
-                targetName = args[2]; // Khai báo targetName rõ ràng trong case này
+                targetName = args[2];
                 target = Bukkit.getPlayer(targetName);
                 if (target == null) {
                     sender.sendMessage(opSecCommand.config.getMessage("removestaff-offline", Map.of("player", targetName)));
@@ -138,13 +136,13 @@ public class ConsoleCommandHandler {
                     sender.sendMessage(opSecCommand.config.getMessage("reset-disabled", null));
                     return true;
                 }
-                targetName = args[1]; // Khai báo targetName rõ ràng trong case này
+                targetName = args[1];
                 String newPwd = args[2];
                 if (!opSecCommand.config.isPasswordValid(newPwd)) {
                     sender.sendMessage(opSecCommand.config.getMessage("reset-invalid-password", Map.of("maxLength", String.valueOf(opSecCommand.config.maxPasswordLength))));
                     return true;
                 }
-                target = Bukkit.getPlayer(targetName); // Khai báo target rõ ràng trong case này
+                target = Bukkit.getPlayer(targetName);
                 if (target == null) {
                     sender.sendMessage(opSecCommand.config.getMessage("reset-offline", Map.of("player", targetName)));
                     return true;
@@ -153,7 +151,7 @@ public class ConsoleCommandHandler {
                     sender.sendMessage(opSecCommand.config.getMessage("reset-not-staff", Map.of("player", targetName)));
                     return true;
                 }
-                uuid = target.getUniqueId().toString(); // Khai báo uuid trong case này
+                uuid = target.getUniqueId().toString();
                 opSecCommand.config.setPassword(uuid, newPwd, opSecCommand.config.getRank(uuid), new Date());
                 sender.sendMessage(opSecCommand.config.getMessage("reset-success", Map.of("player", targetName)));
                 target.sendMessage(opSecCommand.config.getMessage("reset-notify", null));
