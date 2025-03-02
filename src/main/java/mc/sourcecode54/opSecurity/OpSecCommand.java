@@ -4,6 +4,8 @@ import mc.sourcecode54.opSecurity.command.ConsoleCommandHandler;
 import mc.sourcecode54.opSecurity.command.PlayerCommandHandler;
 import net.luckperms.api.LuckPerms;
 import net.luckperms.api.model.group.Group;
+import net.luckperms.api.model.user.User;
+import net.luckperms.api.query.QueryOptions;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
@@ -40,7 +42,7 @@ public class OpSecCommand implements CommandExecutor, TabCompleter {
         this.playerHandler = new PlayerCommandHandler(this);
         this.luckPerms = plugin.getServer().getServicesManager().load(LuckPerms.class);
         if (this.luckPerms == null) {
-            plugin.getLogger().severe("LuckPerms không được tìm thấy! Vui lòng cài đặt plugin LuckPerms.");
+            plugin.getLogger().severe(config.getMessage("luckperms-disabled", null));
             Bukkit.getOnlinePlayers().forEach(p -> p.sendMessage(config.getMessage("luckperms-disabled", null)));
         }
     }
@@ -94,14 +96,19 @@ public class OpSecCommand implements CommandExecutor, TabCompleter {
             if (sender.hasPermission("opsecurity.reload")) cmds.add("reload");
             if (sender.hasPermission("opsecurity.register")) cmds.add("register");
             if (sender.hasPermission("opsecurity.login")) cmds.add("login");
+            if (sender.hasPermission("opsecurity.changepassword")) cmds.add("changepassword"); // Giữ changepassword như subcommand của /opsec
             if (sender.hasPermission("opsecurity.forgot")) cmds.add("forgot");
             if (sender.hasPermission("opsecurity.contactadmin")) cmds.add("contactadmin");
             return cmds.stream().distinct().sorted().collect(Collectors.toList());
+        } else if (args.length == 2 && args[0].equalsIgnoreCase("changepassword") && sender.hasPermission("opsecurity.changepassword")) {
+            return List.of("<old_password>"); // Gợi ý mật khẩu cũ
+        } else if (args.length == 3 && args[0].equalsIgnoreCase("changepassword") && sender.hasPermission("opsecurity.changepassword")) {
+            return List.of("<new_password>"); // Gợi ý mật khẩu mới
         } else if (args.length == 2) {
             switch (args[0].toLowerCase()) {
                 case "addstaff": case "removestaff":
                     if (sender.hasPermission("opsecurity." + args[0].toLowerCase())) {
-                        return getLuckPermsRanks().stream()
+                        return config.getValidRanks().stream()
                                 .filter(r -> r.toLowerCase().startsWith(args[1].toLowerCase()))
                                 .collect(Collectors.toList());
                     }
@@ -168,37 +175,40 @@ public class OpSecCommand implements CommandExecutor, TabCompleter {
     }
 
     private void showHelp(Player player) {
-        player.sendMessage(ChatColor.DARK_GRAY + "┌───────────" + ChatColor.GOLD + " OpSecurity v1.1 by" + ChatColor.YELLOW + "TYBZI" + ChatColor.DARK_GRAY + "───────────┐");
+        player.sendMessage(config.getMessage("prefix", null) + ChatColor.DARK_GRAY + "┌───────────" + ChatColor.GOLD + " OpSecurity " + ChatColor.DARK_GRAY + "───────────┐");
         player.sendMessage(ChatColor.GRAY + "Lệnh chính: /opsec hoặc /os");
         if (player.hasPermission("opsecurity.register")) {
-            player.sendMessage(ChatColor.GRAY + "  • " + ChatColor.GREEN + "/opsec register <mật khẩu>" + ChatColor.GRAY + " - Đăng ký tài khoản staff.");
+            player.sendMessage(ChatColor.GRAY + "  • " + ChatColor.GREEN + "/opsec register <mật khẩu>" + ChatColor.GRAY + " - " + config.getMessage("register-usage", null).replace(config.getMessage("prefix", null), ""));
         }
         if (player.hasPermission("opsecurity.login")) {
-            player.sendMessage(ChatColor.GRAY + "  • " + ChatColor.GREEN + "/opsec login <mật khẩu>" + ChatColor.GRAY + " - Đăng nhập vào tài khoản.");
+            player.sendMessage(ChatColor.GRAY + "  • " + ChatColor.GREEN + "/opsec login <mật khẩu>" + ChatColor.GRAY + " - " + config.getMessage("login-usage", null).replace(config.getMessage("prefix", null), ""));
+        }
+        if (player.hasPermission("opsecurity.changepassword")) {
+            player.sendMessage(ChatColor.GRAY + "  • " + ChatColor.GREEN + "/opsec changepassword <mật khẩu cũ> <mật khẩu mới>" + ChatColor.GRAY + " - " + config.getMessage("changepassword-usage", null).replace(config.getMessage("prefix", null), ""));
         }
         if (player.hasPermission("opsecurity.forgot")) {
-            player.sendMessage(ChatColor.GRAY + "  • " + ChatColor.GREEN + "/opsec forgot" + ChatColor.GRAY + " - Yêu cầu reset mật khẩu.");
+            player.sendMessage(ChatColor.GRAY + "  • " + ChatColor.GREEN + "/opsec forgot" + ChatColor.GRAY + " - " + config.getMessage("forgot-not-needed", null).replace(config.getMessage("prefix", null), ""));
         }
         if (player.hasPermission("opsecurity.contactadmin")) {
-            player.sendMessage(ChatColor.GRAY + "  • " + ChatColor.GREEN + "/opsec contactadmin <tin nhắn>" + ChatColor.GRAY + " - Liên hệ Admin.");
+            player.sendMessage(ChatColor.GRAY + "  • " + ChatColor.GREEN + "/opsec contactadmin <tin nhắn>" + ChatColor.GRAY + " - " + config.getMessage("contactadmin-usage", null).replace(config.getMessage("prefix", null), ""));
         }
         if (player.hasPermission("opsecurity.check")) {
-            player.sendMessage(ChatColor.GRAY + "  • " + ChatColor.GREEN + "/opsec check <player>" + ChatColor.GRAY + " - Kiểm tra rank của Player.");
+            player.sendMessage(ChatColor.GRAY + "  • " + ChatColor.GREEN + "/opsec check <player>" + ChatColor.GRAY + " - " + config.getMessage("check-usage", null).replace(config.getMessage("prefix", null), ""));
         }
         if (player.hasPermission("opsecurity.addstaff")) {
-            player.sendMessage(ChatColor.GRAY + "  • " + ChatColor.GREEN + "/addstaff <rank> <player> hoặc /opsec addstaff <rank> <player>" + ChatColor.GRAY + " - Thêm staff vào rank.");
+            player.sendMessage(ChatColor.GRAY + "  • " + ChatColor.GREEN + "/addstaff <rank> <player> hoặc /opsec addstaff <rank> <player>" + ChatColor.GRAY + " - " + config.getMessage("addstaff-usage", null).replace(config.getMessage("prefix", null), ""));
         }
         if (player.hasPermission("opsecurity.removestaff")) {
-            player.sendMessage(ChatColor.GRAY + "  • " + ChatColor.GREEN + "/removestaff <rank> <player> hoặc /opsec removestaff <rank> <player>" + ChatColor.GRAY + " - Xóa staff khỏi rank.");
+            player.sendMessage(ChatColor.GRAY + "  • " + ChatColor.GREEN + "/removestaff <rank> <player> hoặc /opsec removestaff <rank> <player>" + ChatColor.GRAY + " - " + config.getMessage("removestaff-usage", null).replace(config.getMessage("prefix", null), ""));
         }
         if (player.hasPermission("opsecurity.reset")) {
-            player.sendMessage(ChatColor.GRAY + "  • " + ChatColor.GREEN + "/opsec reset <player> <password>" + ChatColor.GRAY + " - Reset mật khẩu staff.");
+            player.sendMessage(ChatColor.GRAY + "  • " + ChatColor.GREEN + "/opsec reset <player> <password>" + ChatColor.GRAY + " - " + config.getMessage("reset-usage", null).replace(config.getMessage("prefix", null), ""));
         }
         if (player.hasPermission("opsecurity.update")) {
-            player.sendMessage(ChatColor.GRAY + "  • " + ChatColor.GREEN + "/opsec update" + ChatColor.GRAY + " - Kiểm tra và cập nhật plugin (Plugin sẽ tự động update khi có bản mới).");
+            player.sendMessage(ChatColor.GRAY + "  • " + ChatColor.GREEN + "/opsec update" + ChatColor.GRAY + " - " + config.getMessage("update-checking", null).replace(config.getMessage("prefix", null), ""));
         }
         if (player.hasPermission("opsecurity.reload")) {
-            player.sendMessage(ChatColor.GRAY + "  • " + ChatColor.GREEN + "/opsec reload" + ChatColor.GRAY + " - Tải lại cấu hình (chỉ áp dụng cho console).");
+            player.sendMessage(ChatColor.GRAY + "  • " + ChatColor.GREEN + "/opsec reload" + ChatColor.GRAY + " - " + config.getMessage("reload-success", null).replace(config.getMessage("prefix", null), ""));
         }
         player.sendMessage(ChatColor.DARK_GRAY + "└──────────────────────────────────┘");
     }

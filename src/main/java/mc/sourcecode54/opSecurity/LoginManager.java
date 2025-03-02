@@ -52,7 +52,7 @@ public class LoginManager implements Listener {
         authenticated.remove(uuid);
         guis.remove(uuid);
         inputs.remove(uuid);
-        authenticated.put(uuid, false);
+        authenticated.put(uuid, false);  // Đặt lại trạng thái ban đầu là false
     }
 
     public void openLoginGUI(Player player) {
@@ -81,7 +81,8 @@ public class LoginManager implements Listener {
         player.openInventory(gui);
         guis.put(player.getUniqueId(), gui);
         inputs.put(player.getUniqueId(), new StringBuilder());
-        setAuthenticated(player);
+        player.sendMessage(config.getMessage("gui-open", null));  // Thêm thông báo khi mở GUI
+        setAuthenticated(player);  // Đặt trạng thái ban đầu là false khi mở GUI
     }
 
     private Material getMaterial(String modern, String legacy) {
@@ -133,9 +134,9 @@ public class LoginManager implements Listener {
             pwd.append(msg);
             String stored = config.getPassword(uuid.toString());
             if (pwd.toString().equals(stored)) {
-                String rank = config.getRank(uuid.toString());
+                String rank = config.getRank(uuid.toString()); // Lấy rank từ config
                 if (!config.isValidRank(rank)) {
-                    rank = config.getDefaultOrValidRank(perms.getPlayerRank(player));
+                    rank = config.getDefaultOrValidRank(perms.getPlayerRank(player));  // Fallback về rank từ LuckPerms hoặc valid-ranks
                 }
                 setAuthenticated(player);
                 player.sendMessage(config.getMessage("login-success", Map.of("rank", rank)));
@@ -148,7 +149,10 @@ public class LoginManager implements Listener {
                 config.logSecurityEvent(config.getMessage("login-log-failure", Map.of("player", player.getName())));
                 inputs.put(uuid, new StringBuilder());
                 Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                    if (player.isOnline() && !isAuthenticated(player)) openLoginGUI(player);
+                    if (player.isOnline() && !isAuthenticated(player)) {
+                        player.sendMessage(config.getMessage("login-reminder", null));  // Thêm nhắc nhở
+                        openLoginGUI(player);
+                    }
                 }, 1L);
             }
         }
@@ -167,9 +171,9 @@ public class LoginManager implements Listener {
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
         if (perms.isStaff(player)) {
-            String rank = config.getRank(player.getUniqueId().toString());
+            String rank = config.getRank(player.getUniqueId().toString()); // Lấy rank từ config
             if (!config.isValidRank(rank)) {
-                rank = config.getDefaultOrValidRank(perms.getPlayerRank(player));
+                rank = config.getDefaultOrValidRank(perms.getPlayerRank(player));  // Fallback về rank từ LuckPerms hoặc valid-ranks
             }
             if (isRegistered(player) && config.enableLoginGUI) {
                 if (player.hasPermission("opsecurity.login")) {
@@ -190,7 +194,7 @@ public class LoginManager implements Listener {
     public void sendContactRequest(Player player, String rank, String type, String message) {
         String baseMsg = player.getName() + " (Rank: " + rank + ") " + (type.equals("forgot") ? "cần reset mật khẩu" : "gửi tin nhắn: " + message);
         for (Player admin : plugin.getServer().getOnlinePlayers()) {
-            if (perms.isStaff(admin) && admin.hasPermission("opsecurity.forgot")) {
+            if (perms.isStaff(admin) && admin.hasPermission("opsecurity.forgot")) {  // Kiểm tra quyền cho admin nhận thông báo
                 admin.sendMessage(ChatColor.YELLOW + baseMsg);
             }
         }
@@ -200,12 +204,11 @@ public class LoginManager implements Listener {
             placeholders.put("facebookLink", config.facebookLink);
             player.sendMessage(config.getMessage("contact-discord", placeholders));
             player.sendMessage(config.getMessage("contact-facebook", placeholders));
+            player.sendMessage(config.getMessage("contact-sent-offline", null));
         }
         config.logSecurityEvent(player.getName() + " " + (type.equals("forgot") ? "yêu cầu reset" : "gửi tin nhắn") + " với rank " + rank + (message != null ? ": " + message : "") + ".");
         if (type.equals("forgot")) {
             player.sendMessage(config.getMessage("reset-notify", null));
-        } else {
-            player.sendMessage(config.getMessage("contact-sent-offline", null));
         }
     }
 }

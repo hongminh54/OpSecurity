@@ -34,7 +34,11 @@ public class EventListener implements Listener {
                 player.sendMessage(config.getMessage("login-gui-prompt", null));
                 loginMgr.openLoginGUI(player);
             } else {
-                player.sendMessage(config.getMessage("login-cli-prompt", null));
+                String rank = config.getRank(player.getUniqueId().toString());
+                if (!config.isValidRank(rank)) {
+                    rank = config.getDefaultOrValidRank(perms.getPlayerRank(player));
+                }
+                player.sendMessage(config.getMessage("login-cli-prompt", Map.of("rank", rank)));
             }
             if (config.reminderInterval > 0) {
                 Bukkit.getScheduler().runTaskTimer(plugin, () -> {
@@ -80,11 +84,14 @@ public class EventListener implements Listener {
         if (!perms.isStaff(player) || !loginMgr.isRegistered(player) || loginMgr.isAuthenticated(player)) return;
 
         Action action = event.getAction();
-        boolean isHandInteraction;
+        boolean isHandInteraction = true;
 
+        // Kiểm tra phiên bản server để sử dụng getHand()
         if (Bukkit.getServer().getBukkitVersion().contains("1.8") || Bukkit.getServer().getBukkitVersion().contains("1.7")) {
-            isHandInteraction = true;
+            // Với Minecraft 1.8.x, không có getHand(), chỉ kiểm tra action
+            isHandInteraction = true;  // Giả định tất cả tương tác đều từ tay chính (1.8 không phân biệt tay)
         } else {
+            // Với Minecraft 1.9.x trở lên, kiểm tra hand
             EquipmentSlot hand = event.getHand();
             isHandInteraction = (hand == EquipmentSlot.HAND || hand == EquipmentSlot.OFF_HAND);
         }

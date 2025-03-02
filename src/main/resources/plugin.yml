@@ -1,14 +1,15 @@
 name: OpSecurity
 version: '1.1'
 main: mc.sourcecode54.opSecurity.OpSecurity
-authors: [ SourceCode54 ]
+authors: [SourceCode54]
 api-version: 1.13
 load: POSTWORLD
+description: Plugin bảo mật staff.
 depend: [LuckPerms]
 commands:
   opsec:
     description: Quản lý bảo mật cho staff
-    usage: /<command> [register|login|forgot|check|contactadmin|reset|update|reload]
+    usage: /<command> [register|login|changepassword|forgot|check|contactadmin|reset|update|reload]
     permission: opsecurity.use
     aliases: [os]
   addstaff:
@@ -27,6 +28,7 @@ permissions:
       opsecurity.use: true
       opsecurity.register: true
       opsecurity.login: true
+      opsecurity.changepassword: true
       opsecurity.forgot: true
       opsecurity.check: true
       opsecurity.addstaff: true
@@ -38,11 +40,14 @@ permissions:
     description: Cho phép sử dụng lệnh /opsec
     default: op
   opsecurity.register:
-    description: Cho phép đăng ký tài khoản staff
-    default: false  # Mở quyền cho tất cả staff, không chỉ op
+    description: Cho phép đăng ký tài khoản
+    default: false
   opsecurity.login:
-    description: Cho phép đăng nhập tài khoản staff
-    default: false  # Mở quyền cho tất cả staff, không chỉ op
+    description: Cho phép đăng nhập tài khoản
+    default: false
+  opsecurity.changepassword:
+    description: Cho phép thay đổi mật khẩu
+    default: false
   opsecurity.forgot:
     description: Cho phép yêu cầu reset mật khẩu
     default: false

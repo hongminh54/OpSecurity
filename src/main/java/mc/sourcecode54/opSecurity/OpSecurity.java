@@ -1,7 +1,5 @@
 package mc.sourcecode54.opSecurity;
 
-import mc.sourcecode54.opSecurity.command.ConsoleCommandHandler;
-import mc.sourcecode54.opSecurity.command.PlayerCommandHandler;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
